@@ -3,29 +3,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import { COLORS } from '@/constants/Colors';
-import { useState, useEffect } from 'react';
-
-interface Workout {
-  id: string;
-  name: string;
-  exercises: { name: string }[];
-}
-
-declare global {
-  var myWorkouts: Workout[];
-}
+import { useWorkout } from '@/context/WorkoutContext';
 
 export default function WorkoutDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { workouts } = useWorkout();
 
-  const [workout, setWorkout] = useState<Workout | null>(null);
-
-  useEffect(() => {
-    const saved = globalThis.myWorkouts || [];
-    const found = saved.find((w) => w.id === id);
-    setWorkout(found || null);
-  }, [id]);
+  const workout = workouts.find((w) => w.id === id);
 
   const handleAddExercise = () => {
     router.push({ pathname: '/(tabs)/select-position', params: { target: id } });
@@ -33,7 +18,9 @@ export default function WorkoutDetailScreen() {
 
   if (!workout) {
     return (
-      <View style={styles.container}><Text style={styles.title}>Workout Not Found</Text></View>
+      <View style={styles.container}>
+        <Text style={styles.title}>Workout Not Found</Text>
+      </View>
     );
   }
 
@@ -47,7 +34,9 @@ export default function WorkoutDetailScreen() {
 
       <View style={styles.row}>
         <Text style={styles.section}>Exercises</Text>
-        <Pressable onPress={handleAddExercise}><Text style={styles.addLink}>Add</Text></Pressable>
+        <Pressable onPress={handleAddExercise}>
+          <Text style={styles.addLink}>Add</Text>
+        </Pressable>
       </View>
 
       {workout.exercises?.length ? (

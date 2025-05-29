@@ -1,31 +1,62 @@
-// app/exercises/[position].tsx
-
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { sampleExercises } from '@/data/sampleExercises';
 import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
+import { useWorkout } from '@/context/WorkoutContext';
+import { sampleExercises } from '@/data/sampleExercises';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+
+/* ---------- helper maps ---------- */
+const SUBCATEGORY_COLORS: Record<string, string> = {
+  'Ball Manipulation': '#FFA726',
+  Dribbling: '#66BB6A',
+  Crossing: '#42A5F5',
+  Finishing: '#EF5350',
+  'Ball Striking': '#AB47BC',
+  Clearances: '#8D6E63',
+  'Passing/Receiving': '#26A69A',
+  'Speed of Play': '#78909C',
+  Juggling: '#FFCA28',
+};
+
+const normalize = (str: string) => str.toLowerCase().replace(/\s+/g, '-');
 
 export default function PositionExerciseScreen() {
-  const { position } = useLocalSearchParams();
+  const { position, workoutId } = useLocalSearchParams<{
+    position: string;
+    workoutId?: string;
+  }>();
   const router = useRouter();
+  const { addExerciseToWorkout } = useWorkout();
 
-  const normalize = (str: string) => str.toLowerCase().replace(/\s+/g, '-');
+  /* ---------- filter ---------- */
+  const filtered = sampleExercises.filter((ex) => {
+    // ex.positionCategory is now an array of strings
+    const cats = ex.positionCategory.map(normalize);
+    return cats.includes(position);
+  });
 
-  const filtered = sampleExercises.filter(
-    (ex) => position === 'all' || normalize(ex.positionCategory) === position
-  );
+  /* ---------- sort: subcategory → name ---------- */
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.subcategory !== b.subcategory) {
+      return a.subcategory.localeCompare(b.subcategory);
+    }
+    return a.name.localeCompare(b.name);
+  });
 
+  /* ---------- when user taps an exercise ---------- */
   const handleAdd = (exerciseName: string) => {
-    console.log('Added to Quick Workout:', exerciseName);
+    if (workoutId) addExerciseToWorkout(workoutId, { name: exerciseName });
     router.back();
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>{(position as string)?.replaceAll('-', ' ').toUpperCase()}</Text>
+      <Text style={styles.header}>
+        {position.replaceAll('-', ' ').toUpperCase()}
+      </Text>
+
       <FlatList
-        data={filtered}
+        data={sorted}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={{ justifyContent: 'space-between' }}
@@ -33,6 +64,7 @@ export default function PositionExerciseScreen() {
           <ExerciseCard
             name={item.name}
             subcategory={item.subcategory}
+            color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
             onPress={() => handleAdd(item.name)}
           />
         )}

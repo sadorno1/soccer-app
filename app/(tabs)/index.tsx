@@ -4,10 +4,13 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
-
+import { useWorkout } from '@/context/WorkoutContext';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { workouts } = useWorkout(); // 👈 new
+
+  const upcomingWorkout = workouts.find((w) => !w.permanent);
 
   return (
     <View style={styles.container}>
@@ -22,7 +25,9 @@ export default function HomeScreen() {
 
       <Text style={styles.sectionTitle}>Upcoming Workout</Text>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Attack Drills</Text>
+        <Text style={styles.cardTitle}>
+          {upcomingWorkout ? upcomingWorkout.name : 'No upcoming workout'}
+        </Text>
         <Text style={styles.cardSubtitle}>Today 9:00 AM</Text>
       </View>
 

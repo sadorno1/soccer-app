@@ -1,38 +1,44 @@
 // app/(tabs)/select-position.tsx
-
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 
-// Map of positions to route param keys
 const positions = [
-  { key: 'attacking', label: 'Attacking\nPlayers' },
-  { key: 'center-mids', label: 'Center\nMidfielders' },
-  { key: 'center-backs', label: 'Center\nBacks' },
-  { key: 'outside-backs', label: 'Outside\nBacks' },
+  { key: 'attacking-players',   label: 'Attacking\nPlayers' },
+  { key: 'center-midfielders',  label: 'Center\nMidfielders' },
+  { key: 'center-backs',        label: 'Center\nBacks' },
+  { key: 'outside-backs',       label: 'Outside\nBacks' },
 ];
 
 export default function SelectPositionScreen() {
   const router = useRouter();
+  const { target } = useLocalSearchParams<{ target?: string }>();
 
-  const goToExercises = (pos: string) => {
-    // Use the object form so Expo Router has a strongly‑typed path
-    router.push({ pathname: '/exercises/[position]', params: { position: pos } });
+  const selectPosition = (pos: string) => {
+    router.push({
+      pathname: '/exercises/[position]',
+      params: { position: pos, workoutId: target },
+    });
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Select Position</Text>
-
       <View style={styles.fieldGrid}>
         {positions.map((p) => (
-          <Pressable key={p.key} style={styles.circle} onPress={() => goToExercises(p.key)}>
+          <Pressable
+            key={p.key}
+            style={styles.circle}
+            onPress={() => selectPosition(p.key)}
+          >
             <Text style={styles.circleText}>{p.label}</Text>
           </Pressable>
         ))}
       </View>
-
-      <Pressable style={styles.allBtn} onPress={() => goToExercises('all')}>
+      <Pressable
+        style={styles.allBtn}
+        onPress={() => selectPosition('all-positions')}
+      >
         <Text style={styles.allText}>All Positions</Text>
       </Pressable>
     </View>
