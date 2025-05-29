@@ -1,9 +1,9 @@
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { sampleExercises } from '@/data/sampleExercises';
 import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
-import { sampleExercises } from '@/data/sampleExercises';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 /* ---------- helper maps ---------- */
 const SUBCATEGORY_COLORS: Record<string, string> = {
@@ -29,11 +29,9 @@ export default function PositionExerciseScreen() {
   const { addExerciseToWorkout } = useWorkout();
 
   /* ---------- filter ---------- */
-  const filtered = sampleExercises.filter((ex) => {
-    // ex.positionCategory is now an array of strings
-    const cats = ex.positionCategory.map(normalize);
-    return cats.includes(position);
-  });
+  const filtered = sampleExercises.filter((ex) =>
+    ex.positionCategory.map(normalize).includes(position)
+  );
 
   /* ---------- sort: subcategory → name ---------- */
   const sorted = [...filtered].sort((a, b) => {
@@ -44,8 +42,8 @@ export default function PositionExerciseScreen() {
   });
 
   /* ---------- when user taps an exercise ---------- */
-  const handleAdd = (exerciseName: string) => {
-    if (workoutId) addExerciseToWorkout(workoutId, { name: exerciseName });
+  const handleAdd = (exercise: typeof sampleExercises[number]) => {
+    if (workoutId) addExerciseToWorkout(workoutId, exercise);
     router.back();
   };
 
@@ -65,7 +63,7 @@ export default function PositionExerciseScreen() {
             name={item.name}
             subcategory={item.subcategory}
             color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
-            onPress={() => handleAdd(item.name)}
+            onPress={() => handleAdd(item)}
           />
         )}
         contentContainerStyle={{ paddingBottom: 40 }}

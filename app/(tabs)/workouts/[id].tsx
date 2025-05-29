@@ -1,9 +1,20 @@
-// app/workouts/[id].tsx
-
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
+import ExerciseCard from '@/components/ExerciseCard';
+
+const SUBCATEGORY_COLORS: Record<string, string> = {
+  'Ball Manipulation': '#FFA726',
+  Dribbling: '#66BB6A',
+  Crossing: '#42A5F5',
+  Finishing: '#EF5350',
+  'Ball Striking': '#AB47BC',
+  Clearances: '#8D6E63',
+  'Passing/Receiving': '#26A69A',
+  'Speed of Play': '#78909C',
+  Juggling: '#FFCA28',
+};
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -44,7 +55,13 @@ export default function WorkoutDetailScreen() {
           data={workout.exercises}
           keyExtractor={(item, i) => item.name + i}
           renderItem={({ item }) => (
-            <Text style={styles.exerciseItem}>{item.name}</Text>
+            <ExerciseCard
+              name={item.name}
+              subcategory={item.subcategory}
+              sets={item.sets}
+              weight={item.weight}
+              color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
+            />
           )}
         />
       ) : (
@@ -126,10 +143,5 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: '600',
     fontSize: 14,
-  },
-  exerciseItem: {
-    fontSize: 16,
-    color: COLORS.text,
-    marginVertical: 8,
   },
 });

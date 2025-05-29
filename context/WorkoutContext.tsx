@@ -2,8 +2,18 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface Exercise {
+  id: string;
   name: string;
-  [key: string]: any;
+  subcategory: string;
+  positionCategory: string[];
+  setup: string;
+  description: string;
+  uses_tracking: boolean;
+  sets: number;
+  set_duration: number;
+  rest: number;
+  perFoot?: boolean;
+  weight?: string;
 }
 
 interface Workout {
@@ -22,14 +32,16 @@ interface WorkoutContextType {
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
-  const [workouts, setWorkouts] = useState<Workout[]>([{
-    id: 'quick',
-    name: 'Quick Workout',
-    exercises: [],
-    tag: 'Quick',
-    color: '#0ea5e9',
-    permanent: true,
-  }]);
+  const [workouts, setWorkouts] = useState<Workout[]>([
+    {
+      id: 'quick',
+      name: 'Quick Workout',
+      exercises: [],
+      tag: 'Quick',
+      color: '#0ea5e9',
+      permanent: true,
+    },
+  ]);
 
   const addWorkout = (w: Workout) => setWorkouts((prev) => [...prev, w]);
 
@@ -37,7 +49,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
     setWorkouts((prev) =>
       prev.map((w) =>
         w.id === workoutId
-          ? { ...w, exercises: [...(w.exercises || []), exercise] }
+          ? { ...w, exercises: [...w.exercises, exercise] }
           : w
       )
     );
