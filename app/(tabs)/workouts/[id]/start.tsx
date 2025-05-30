@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { COLORS } from '@/constants/Colors';
@@ -18,100 +19,113 @@ export default function StartWorkoutScreen() {
   const { workouts } = useWorkout();
   const workout = workouts.find((w) => w.id === id);
 
-  /* ─────────── runtime state ─────────── */
-  const [exIdx, setExIdx] = useState(0);     // which exercise
-  const [setIdx, setSetIdx] = useState(0);   // which set inside exercise
+  // indices and phase
+  const [exIdx, setExIdx] = useState(0);
+  const [setIdx, setSetIdx] = useState(0);
   const [phase, setPhase] = useState<'ready' | 'active' | 'rest'>('ready');
-  const [count, setCount] = useState(5);     // countdown seconds
-
+  const [count, setCount] = useState(10); // initial get-ready
+  const [inputVal, setInputVal] = useState('');
+  const [paused, setPaused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-
-  /* ─────────── helpers ─────────── */
-  const exercise = workout?.exercises[exIdx];
-
-  const startCountdown = (seconds: number, next: () => void) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCount(seconds);
-    timerRef.current = setInterval(() => {
-      setCount((c) => {
-        if (c <= 1) {
-          clearInterval(timerRef.current!);
-          next();
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-  };
-
-  /* ─────────── start timers on phase changes ─────────── */
-  useEffect(() => {
-    if (!exercise) return;
-
-    if (phase === 'ready') {
-      startCountdown(5, () => setPhase('active'));
-    } else if (phase === 'active') {
-      startCountdown(exercise.set_duration, () => setPhase('rest'));
-    } else if (phase === 'rest') {
-      // rest lasts 5 s; then go to next set / exercise
-      startCountdown(5, () => {
-        const moreSets = setIdx + 1 < exercise.sets;
-        if (moreSets) {
-          setSetIdx((i) => i + 1);
-          setPhase('ready');
-        } else {
-          const moreExercises = exIdx + 1 < workout!.exercises.length;
-          if (moreExercises) {
-            setExIdx((i) => i + 1);
-            setSetIdx(0);
-            setPhase('ready');
-          } else {
-            router.back(); // workout finished
-          }
-        }
-      });
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [phase, exIdx, setIdx]);
-
-  /* ─────────── manual nav (skip) ─────────── */
-  const skipPrev = () => {
-    if (setIdx > 0) {
-      setSetIdx((i) => i - 1);
-      setPhase('ready');
-    } else if (exIdx > 0) {
-      const prevEx = workout!.exercises[exIdx - 1];
-      setExIdx((i) => i - 1);
-      setSetIdx(prevEx.sets - 1);
-      setPhase('ready');
-    }
-  };
-
-  const skipNext = () => {
-    if (setIdx + 1 < exercise!.sets) {
-      setSetIdx((i) => i + 1);
-      setPhase('ready');
-    } else if (exIdx + 1 < workout!.exercises.length) {
-      setExIdx((i) => i + 1);
-      setSetIdx(0);
-      setPhase('ready');
-    }
-  };
-
-  /* ─────────── guard if workout not found ─────────── */
-  if (!workout || !exercise) {
+  if (!workout) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Workout Not Found</Text>
       </View>
     );
   }
+  const exercise = workout.exercises[exIdx];
 
-  /* ─────────── UI ─────────── */
+  const startCountdown = (seconds: number, next: () => void) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCount(seconds);
+    timerRef.current = setInterval(() => {
+      if (!paused) {
+        setCount((c) => {
+          if (c <= 1) {
+            clearInterval(timerRef.current!);
+            next();
+            return 0;
+          }
+          return c - 1;
+        });
+      }
+    }, 1000);
+  };
+
+  useEffect(() => {
+    // cleanup previous timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    // don't start if paused or no exercise
+    if (!exercise) return;
+
+    if (phase === 'ready') {
+      startCountdown(10, () => setPhase('active')); // get ready 10s
+    } else if (phase === 'active') {
+      if (!exercise.uses_tracking) {
+        startCountdown(exercise.set_duration, () => setPhase('rest'));
+      }
+      // uses_tracking: user input handles transition
+    } else if (phase === 'rest') {
+      startCountdown(30, () => {
+        // advance set or exercise
+        if (setIdx + 1 < exercise.sets) {
+          setSetIdx((i) => i + 1);
+          setPhase('ready');
+        } else if (exIdx + 1 < workout.exercises.length) {
+          setExIdx((i) => i + 1);
+          setSetIdx(0);
+          setPhase('ready');
+        } else {
+          router.back();
+        }
+      });
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [phase, exIdx, setIdx, paused]);
+
+  const goPrev = () => {
+    if (phase === 'rest') setPhase('active');
+    else if (phase === 'active') setPhase('ready');
+    else {
+      if (setIdx > 0) {
+        setSetIdx((i) => i - 1);
+        setPhase('rest');
+      } else if (exIdx > 0) {
+        const prevEx = workout.exercises[exIdx - 1];
+        setExIdx((i) => i - 1);
+        setSetIdx(prevEx.sets - 1);
+        setPhase('rest');
+      }
+    }
+  };
+
+  const goNext = () => {
+    if (phase === 'ready') setPhase('active');
+    else if (phase === 'active') setPhase('rest');
+    else {
+      if (setIdx + 1 < exercise.sets) {
+        setSetIdx((i) => i + 1);
+        setPhase('ready');
+      } else if (exIdx + 1 < workout.exercises.length) {
+        setExIdx((i) => i + 1);
+        setSetIdx(0);
+        setPhase('ready');
+      } else {
+        router.back();
+      }
+    }
+  };
+
   return (
     <View style={styles.screen}>
       {/* HEADER */}
@@ -125,22 +139,16 @@ export default function StartWorkoutScreen() {
 
       {/* IMAGE */}
       <Image
-        source={{
-          uri: exercise.imageUri ?? 'https://via.placeholder.com/350x150',
-        }}
+        source={{ uri: exercise.imageUri || 'https://via.placeholder.com/350x150' }}
         style={styles.image}
-        resizeMode="contain"
       />
 
-      {/* BIG PILLS */}
+      {/* PILLS */}
       <View style={styles.pills}>
         {Array.from({ length: exercise.sets }).map((_, i) => (
           <View
             key={i}
-            style={[
-              styles.pill,
-              i === setIdx && styles.pillActive,
-            ]}>
+            style={[styles.pill, i === setIdx && styles.pillActive]}>
             <Text style={i === setIdx ? styles.pillTextActive : styles.pillText}>
               {i + 1}
             </Text>
@@ -148,18 +156,48 @@ export default function StartWorkoutScreen() {
         ))}
       </View>
 
-      {/* COUNTDOWN */}
-      <Text style={styles.countdown}>
-        {phase === 'ready' && 'Get ready! '}
-        {count}
-      </Text>
-      <Text style={styles.subheading}>
-        {phase === 'active'
-          ? 'Perform the exercise'
-          : phase === 'rest'
-          ? 'Rest'
-          : ''}
-      </Text>
+      {/* COUNT / INPUT */}
+      <View style={styles.controlRow}>
+        {(phase === 'active' && exercise.uses_tracking) ? (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputField}
+              placeholder="Enter reps"
+              keyboardType="numeric"
+              value={inputVal}
+              onChangeText={setInputVal}
+            />
+            <Pressable style={styles.inputBtn} onPress={() => setPhase('rest')}>
+              <Text style={styles.inputBtnText}>Done</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.countdown}>
+              {phase === 'ready'
+                ? 'Get ready! '
+                : phase === 'rest'
+                ? 'Rest '
+                : ''}
+              {count}
+            </Text>
+            <Text style={styles.subheading}>
+              {phase === 'active'
+                ? 'Perform the exercise'
+                : phase === 'rest'
+                ? 'Rest up'
+                : ''}
+            </Text>
+          </>
+        )}
+      </View>
+
+      {/* PAUSE BUTTON */}
+      <View style={styles.pauseContainer}>
+        <Pressable style={styles.pauseBtn} onPress={() => setPaused((p) => !p)}>
+          <Text style={styles.pauseText}>{paused ? 'Resume' : 'Pause'}</Text>
+        </Pressable>
+      </View>
 
       {/* DETAILS */}
       <ScrollView style={styles.detailsContainer}>
@@ -170,22 +208,15 @@ export default function StartWorkoutScreen() {
         <Text style={styles.paragraph}>{exercise.description}</Text>
       </ScrollView>
 
-      {/* FOOTER NAV */}
+      {/* FOOTER */}
       <View style={styles.footer}>
-        <Pressable onPress={skipPrev} disabled={exIdx === 0 && setIdx === 0}>
+        <Pressable onPress={goPrev} disabled={exIdx === 0 && setIdx === 0 && phase === 'ready'}>
           <Text style={styles.navArrow}>←</Text>
         </Pressable>
-
         <Pressable style={styles.finishBtn} onPress={() => router.back()}>
           <Text style={styles.finishText}>End workout</Text>
         </Pressable>
-
-        <Pressable
-          onPress={skipNext}
-          disabled={
-            exIdx === workout.exercises.length - 1 &&
-            setIdx === exercise.sets - 1
-          }>
+        <Pressable onPress={goNext}>
           <Text style={styles.navArrow}>→</Text>
         </Pressable>
       </View>
@@ -193,7 +224,6 @@ export default function StartWorkoutScreen() {
   );
 }
 
-/* ─────────── styles ─────────── */
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.background },
   container: { flex: 1, padding: 16, backgroundColor: COLORS.background },
@@ -213,18 +243,22 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   pill: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 6,
   },
   pillActive: { backgroundColor: COLORS.primary },
-  pillText: { color: COLORS.text, fontSize: 16 },
-  pillTextActive: { color: COLORS.background, fontSize: 16 },
+  pillText: { color: COLORS.text, fontSize: 18 },
+  pillTextActive: { color: COLORS.background, fontSize: 18 },
 
+  controlRow: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   countdown: {
     fontSize: 36,
     fontWeight: '700',
@@ -237,6 +271,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 12,
   },
+  pauseContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  pauseBtn: {
+    padding: 8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    width: 100,
+    alignItems: 'center',
+  },
+  pauseText: { color: COLORS.primary, fontWeight: '600' },
+
+  inputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  inputField: {
+    borderWidth: 1,
+    borderColor: COLORS.textMuted,
+    borderRadius: 8,
+    padding: 8,
+    width: 80,
+    textAlign: 'center',
+    marginRight: 12,
+    color: COLORS.text,
+  },
+  inputBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  inputBtnText: { color: COLORS.background, fontWeight: '600' },
 
   detailsContainer: { flex: 1, paddingHorizontal: 16 },
   sectionHeading: {
