@@ -95,7 +95,7 @@ export default function MyWorkoutsScreen() {
                 <Text style={styles.modalTitle}>Add Workout</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Ex.: Chest and Triceps"
+                  placeholder="Ex.: Coordination"
                   placeholderTextColor={COLORS.textMuted}
                   value={newWorkoutName}
                   onChangeText={setNewWorkoutName}
