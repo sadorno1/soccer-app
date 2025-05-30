@@ -32,6 +32,9 @@ interface WorkoutContextType {
   addWorkout: (w: Workout) => void;
   deleteWorkout: (id: string) => void;
   addExerciseToWorkout: (workoutId: string, exercise: Exercise) => void;
+  deleteExerciseFromWorkout: (workoutId: string, exerciseIdx: number) => void;
+
+  
 }
 
 /* ---------- context ---------- */
@@ -54,6 +57,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const deleteWorkout = (id: string) =>
     setWorkouts((prev) => prev.filter((w) => w.id !== id || w.permanent));
 
+  const deleteExerciseFromWorkout = (workoutId: string, exerciseIdx: number) =>
+  setWorkouts(prev =>
+    prev.map(w =>
+      w.id === workoutId
+        ? { ...w, exercises: w.exercises.filter((_, i) => i !== exerciseIdx) }
+        : w,
+    ),
+  );
+
   const addExerciseToWorkout = (workoutId: string, exercise: Exercise) => {
     setWorkouts((prev) =>
       prev.map((w) =>
@@ -66,7 +78,7 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <WorkoutContext.Provider
-      value={{ workouts, addWorkout, deleteWorkout, addExerciseToWorkout }}
+      value={{ workouts, addWorkout, deleteWorkout, addExerciseToWorkout, deleteExerciseFromWorkout, }}
     >
       {children}
     </WorkoutContext.Provider>

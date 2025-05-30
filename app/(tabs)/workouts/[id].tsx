@@ -1,9 +1,18 @@
+// app/workouts/[id].tsx
 import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
+/* ---------- helper map ---------- */
 const SUBCATEGORY_COLORS: Record<string, string> = {
   'Ball Manipulation': '#FFA726',
   Dribbling: '#66BB6A',
@@ -19,10 +28,10 @@ const SUBCATEGORY_COLORS: Record<string, string> = {
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { workouts } = useWorkout();
+  const { workouts, deleteExerciseFromWorkout } = useWorkout();
 
   const workout = workouts.find((w) => w.id === id);
-  const hasExercises = !!workout?.exercises?.length;   // ← TRUE when ≥1 exercise
+  const hasExercises = !!workout?.exercises?.length;
 
   const handleAddExercise = () => {
     router.push({ pathname: '/(tabs)/select-position', params: { target: id } });
@@ -40,11 +49,21 @@ export default function WorkoutDetailScreen() {
     );
   }
 
+  /* ---------- swipe delete action ---------- */
+  const renderRightActions = (idx: number) => (
+    <Pressable
+      onPress={() => deleteExerciseFromWorkout(id!, idx)}
+      style={styles.deleteBox}
+    >
+      <Text style={styles.deleteText}>Delete</Text>
+    </Pressable>
+  );
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{workout.name}</Text>
 
-      {/* Start button – color + disabled state driven by hasExercises */}
+      {/* Start button */}
       <Pressable
         style={[
           styles.startButtonBase,
@@ -75,16 +94,22 @@ export default function WorkoutDetailScreen() {
       {hasExercises ? (
         <FlatList
           data={workout.exercises}
-          keyExtractor={(item, i) => item.name + i}
-          renderItem={({ item }) => (
-            <ExerciseCard
-              name={item.name}
-              subcategory={item.subcategory}
-              sets={item.sets}
-              weight={item.weight}
-              color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
-            />
+          keyExtractor={(_, idx) => `${workout.id}-${idx}`}
+          renderItem={({ item, index }) => (
+            <Swipeable
+              renderRightActions={() => renderRightActions(index)}
+              overshootRight={false}
+            >
+              <ExerciseCard
+                name={item.name}
+                subcategory={item.subcategory}
+                sets={item.sets}
+                weight={item.weight}
+                color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
+              />
+            </Swipeable>
           )}
+          contentContainerStyle={{ paddingBottom: 40 }}
         />
       ) : (
         <View style={styles.emptyState}>
@@ -101,6 +126,7 @@ export default function WorkoutDetailScreen() {
   );
 }
 
+/* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -113,56 +139,43 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 20,
     marginTop: 20,
-
-
   },
 
-  /* -------- Start button styles -------- */
+  /* start button */
   startButtonBase: {
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 24,
   },
-  startEnabled: {
-    backgroundColor: COLORS.primary,
-  },
-  startDisabled: {
-    backgroundColor: COLORS.surface,
-    opacity: 0.6,
-  },
-  startTextBase: {
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  startTextEnabled: {
-    color: COLORS.background,
-  },
-  startTextDisabled: {
-    color: COLORS.textMuted,
-  },
+  startEnabled: { backgroundColor: COLORS.primary },
+  startDisabled: { backgroundColor: COLORS.surface, opacity: 0.6 },
+  startTextBase: { fontWeight: '600', fontSize: 16 },
+  startTextEnabled: { color: COLORS.background },
+  startTextDisabled: { color: COLORS.textMuted },
 
-  /* -------- Rest of the styles -------- */
-  section: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-  },
-  addLink: {
-    color: COLORS.primary,
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  /* header row */
+  section: { fontSize: 18, fontWeight: '600', color: COLORS.text },
+  addLink: { color: COLORS.primary, fontWeight: '600', fontSize: 14 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-  emptyState: {
+
+  /* swipe delete */
+  deleteBox: {
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 40,
+    width: 90,
+    borderRadius: 12,
   },
+  deleteText: { color: '#fff', fontWeight: '700' },
+
+  /* empty state */
+  emptyState: { alignItems: 'center', marginTop: 40 },
   noText: {
     fontSize: 18,
     fontWeight: '600',
@@ -181,9 +194,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
-  ctaText: {
-    color: COLORS.background,
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  ctaText: { color: COLORS.background, fontWeight: '600', fontSize: 14 },
 });

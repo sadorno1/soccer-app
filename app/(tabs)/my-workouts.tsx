@@ -18,10 +18,9 @@ import {
 const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const TAG_COLORS = ['#facc15', '#f97316', '#34d399', '#60a5fa', '#a78bfa', '#f87171'];
 
-
 export default function MyWorkoutsScreen() {
   const router = useRouter();
-  const { workouts, addWorkout } = useWorkout();
+  const { workouts, addWorkout, deleteWorkout } = useWorkout();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [newWorkoutName, setNewWorkoutName] = useState('');
@@ -30,7 +29,7 @@ export default function MyWorkoutsScreen() {
   /* ---------- helpers ---------- */
   const toggleDay = (day: string) => {
     setSelectedDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
     );
   };
 
@@ -38,13 +37,12 @@ export default function MyWorkoutsScreen() {
     if (!newWorkoutName.trim()) return;
     const nextColor = TAG_COLORS[workouts.length % TAG_COLORS.length];
 
-
     addWorkout({
       id: Date.now().toString(),
       name: newWorkoutName.trim(),
       exercises: [],
       tag: selectedDays[0] || '',
-      color: nextColor,   
+      color: nextColor,
       days: selectedDays,
     });
 
@@ -53,27 +51,45 @@ export default function MyWorkoutsScreen() {
     setModalVisible(false);
   };
 
+  /* ---------- swipe action ---------- */
+  const renderRightActions = (item: any) =>
+    item.permanent ? null : (
+      <Pressable
+        onPress={() => deleteWorkout(item.id)}
+        style={styles.deleteBox}
+      >
+        <Text style={styles.deleteText}>Delete</Text>
+      </Pressable>
+    );
+
+  /* ---------- card ---------- */
   const renderWorkoutCard = (item: any) => (
-    <Pressable
+    <Swipeable
       key={item.id}
-      style={styles.card}
-      onPress={() =>
-        router.push({ pathname: '/workouts/[id]', params: { id: item.id } })
-      }>
-      <View style={styles.cardLeft}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardSubtitle}>{item.exercises.length} exercises</Text>
-      </View>
-      <View style={[styles.tagCircle, { backgroundColor: item.color }]}>
-        <Text style={styles.tagText}>{item.tag}</Text>
-      </View>
-    </Pressable>
+      renderRightActions={() => renderRightActions(item)}
+      overshootRight={false}
+    >
+      <Pressable
+        style={styles.card}
+        onPress={() =>
+          router.push({ pathname: '/workouts/[id]', params: { id: item.id } })
+        }
+      >
+        <View style={styles.cardLeft}>
+          <Text style={styles.cardTitle}>{item.name}</Text>
+          <Text style={styles.cardSubtitle}>{item.exercises.length} exercises</Text>
+        </View>
+        <View style={[styles.tagCircle, { backgroundColor: item.color }]}>
+          <Text style={styles.tagText}>{item.tag}</Text>
+        </View>
+      </Pressable>
+    </Swipeable>
   );
 
   /* ---------- render ---------- */
   return (
     <View style={styles.container}>
-      {/* Header row */}
+      {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.title}>My Workouts</Text>
         <Pressable onPress={() => setModalVisible(true)}>
@@ -83,7 +99,7 @@ export default function MyWorkoutsScreen() {
 
       <Text style={styles.section}>Workout Plans</Text>
 
-      {/* List of workouts */}
+      {/* List */}
       <FlatList
         data={workouts}
         keyExtractor={(item) => item.id}
@@ -91,7 +107,7 @@ export default function MyWorkoutsScreen() {
         contentContainerStyle={{ paddingBottom: 40 }}
       />
 
-      {/* Add-Workout modal */}
+      {/* Add-Workout modal (unchanged) */}
       <Modal visible={modalVisible} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
           <View style={styles.modalBackground}>
@@ -115,7 +131,8 @@ export default function MyWorkoutsScreen() {
                       style={[
                         styles.dayBox,
                         selectedDays.includes(day) && styles.daySelected,
-                      ]}>
+                      ]}
+                    >
                       <Text style={styles.dayText}>{day}</Text>
                     </Pressable>
                   ))}
@@ -124,7 +141,8 @@ export default function MyWorkoutsScreen() {
                 <View style={styles.modalButtons}>
                   <Pressable
                     onPress={() => setModalVisible(false)}
-                    style={styles.cancelBtn}>
+                    style={styles.cancelBtn}
+                  >
                     <Text style={styles.cancelText}>CANCEL</Text>
                   </Pressable>
                   <Pressable onPress={handleAddWorkout} style={styles.addBtn}>
@@ -140,7 +158,7 @@ export default function MyWorkoutsScreen() {
   );
 }
 
-/* ---------- styles (unchanged) ---------- */
+/* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -156,7 +174,14 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: '700', color: COLORS.text },
   addText: { color: COLORS.primary, fontSize: 16, fontWeight: '600' },
-  section: { fontSize: 16, fontWeight: '600', color: COLORS.text, marginBottom: 12 },
+  section: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+
+  /* card */
   card: {
     backgroundColor: COLORS.surface,
     padding: 16,
@@ -172,6 +197,17 @@ const styles = StyleSheet.create({
   tagCircle: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   tagText: { color: '#000', fontWeight: '600', fontSize: 12 },
 
+  /* swipe delete */
+  deleteBox: {
+    backgroundColor: '#ef4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 90,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  deleteText: { color: '#fff', fontWeight: '700' },
+
   /* modal styles … (unchanged) */
   modalBackground: {
     flex: 1,
@@ -179,10 +215,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, width: '85%' },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
-  modalLabel: { fontSize: 14, color: COLORS.text, marginTop: 16, marginBottom: 8 },
-  dayRow: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap' },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    padding: 20,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
+  modalLabel: {
+    fontSize: 14,
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  dayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+  },
   dayBox: {
     borderColor: COLORS.primary,
     borderWidth: 1.5,
@@ -193,10 +248,33 @@ const styles = StyleSheet.create({
   },
   daySelected: { backgroundColor: COLORS.primary },
   dayText: { color: COLORS.text, fontSize: 12, fontWeight: '600' },
-  input: { backgroundColor: COLORS.background, borderRadius: 8, padding: 12, color: COLORS.text },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
-  cancelBtn: { flex: 1, marginRight: 8, backgroundColor: COLORS.surface, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
-  addBtn: { flex: 1, marginLeft: 8, backgroundColor: COLORS.primary, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
+  input: {
+    backgroundColor: COLORS.background,
+    borderRadius: 8,
+    padding: 12,
+    color: COLORS.text,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  cancelBtn: {
+    flex: 1,
+    marginRight: 8,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  addBtn: {
+    flex: 1,
+    marginLeft: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
   cancelText: { color: COLORS.primary, fontWeight: '600', fontSize: 14 },
   addTextBtn: { color: COLORS.text, fontWeight: '600', fontSize: 14 },
 });
