@@ -12,6 +12,8 @@ export interface Exercise {
   set_duration: number;
   rest: number;
   perFoot?: boolean;
+  imageUri? : string;
+  videoUrl? : string;
 }
 
 export const sampleExercises: Exercise[] = [

@@ -1,8 +1,8 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
+import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
-import ExerciseCard from '@/components/ExerciseCard';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const SUBCATEGORY_COLORS: Record<string, string> = {
   'Ball Manipulation': '#FFA726',
@@ -38,10 +38,14 @@ export default function WorkoutDetailScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{workout.name}</Text>
-
-      <Pressable style={styles.startButton} disabled>
-        <Text style={styles.startText}>Start workout</Text>
+      <Pressable style={styles.startButton}
+      onPress={() => 
+        router.push({
+       pathname: '/(tabs)/workouts/[id]/start',
+       params: { id },})}>
+      <Text style={styles.startText}>Start workout</Text>
       </Pressable>
+
 
       <View style={styles.row}>
         <Text style={styles.section}>Exercises</Text>
