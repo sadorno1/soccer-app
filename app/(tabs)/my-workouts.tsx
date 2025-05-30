@@ -1,20 +1,23 @@
 // app/(tabs)/my-workouts.tsx
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  Modal,
-  TouchableWithoutFeedback,
-} from 'react-native';
-import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
+import { useRouter } from 'expo-router';
+import { Swipeable } from 'react-native-gesture-handler';
+import { useState } from 'react';
+import {
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 
 const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const TAG_COLORS = ['#facc15', '#f97316', '#34d399', '#60a5fa', '#a78bfa', '#f87171'];
+
 
 export default function MyWorkoutsScreen() {
   const router = useRouter();
@@ -33,13 +36,15 @@ export default function MyWorkoutsScreen() {
 
   const handleAddWorkout = () => {
     if (!newWorkoutName.trim()) return;
+    const nextColor = TAG_COLORS[workouts.length % TAG_COLORS.length];
+
 
     addWorkout({
       id: Date.now().toString(),
       name: newWorkoutName.trim(),
       exercises: [],
-      tag: selectedDays[0] || 'New',
-      color: '#facc15',
+      tag: selectedDays[0] || '',
+      color: nextColor,   
       days: selectedDays,
     });
 
@@ -141,7 +146,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 50,
   },
   headerRow: {
     flexDirection: 'row',

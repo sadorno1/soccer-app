@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
   },
-  title: { fontSize: 20, fontWeight: '700', color: COLORS.text },
+  title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginTop: 30, },
   navArrow: { fontSize: 28, color: COLORS.primary },
   image: { width: '100%', height: 200, backgroundColor: '#222' },
 

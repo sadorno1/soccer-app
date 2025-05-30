@@ -1,9 +1,9 @@
-import { View, Text, FlatList, StyleSheet } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { sampleExercises } from '@/data/sampleExercises';
 import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
+import { sampleExercises } from '@/data/sampleExercises';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 
 /* ---------- helper maps ---------- */
 const SUBCATEGORY_COLORS: Record<string, string> = {
@@ -42,10 +42,16 @@ export default function PositionExerciseScreen() {
   });
 
   /* ---------- when user taps an exercise ---------- */
-  const handleAdd = (exercise: typeof sampleExercises[number]) => {
-    if (workoutId) addExerciseToWorkout(workoutId, exercise);
-    router.back();
-  };
+const handleAdd = (exercise: typeof sampleExercises[number]) => {
+  if (workoutId) addExerciseToWorkout(workoutId, exercise);
+
+  // Jump straight back to the select-position screen instead of Home
+  router.replace({
+    pathname: '/(tabs)/workouts/[id]',
+    params: { id: workoutId },   // pass the workout ID back along
+  });
+};
+
 
   return (
     <View style={styles.container}>
@@ -85,5 +91,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 16,
     textAlign: 'center',
+    marginTop: 20,
+
   },
 });

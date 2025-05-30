@@ -66,6 +66,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 20,
+    marginTop: 20,
+
   },
   startButton: {
     backgroundColor: '#14532d',

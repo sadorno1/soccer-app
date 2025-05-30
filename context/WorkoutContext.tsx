@@ -1,6 +1,7 @@
 // context/WorkoutContext.tsx
 import { createContext, useContext, useState, ReactNode } from 'react';
 
+/* ---------- types ---------- */
 interface Exercise {
   id: string;
   name: string;
@@ -20,15 +21,20 @@ interface Workout {
   id: string;
   name: string;
   exercises: Exercise[];
+  permanent?: boolean;  // keep Quick Workout undeletable
+  tag?: string;
+  color?: string;
   [key: string]: any;
 }
 
 interface WorkoutContextType {
   workouts: Workout[];
   addWorkout: (w: Workout) => void;
+  deleteWorkout: (id: string) => void;
   addExerciseToWorkout: (workoutId: string, exercise: Exercise) => void;
 }
 
+/* ---------- context ---------- */
 const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
 
 export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
@@ -45,6 +51,9 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
 
   const addWorkout = (w: Workout) => setWorkouts((prev) => [...prev, w]);
 
+  const deleteWorkout = (id: string) =>
+    setWorkouts((prev) => prev.filter((w) => w.id !== id || w.permanent));
+
   const addExerciseToWorkout = (workoutId: string, exercise: Exercise) => {
     setWorkouts((prev) =>
       prev.map((w) =>
@@ -56,12 +65,15 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <WorkoutContext.Provider value={{ workouts, addWorkout, addExerciseToWorkout }}>
+    <WorkoutContext.Provider
+      value={{ workouts, addWorkout, deleteWorkout, addExerciseToWorkout }}
+    >
       {children}
     </WorkoutContext.Provider>
   );
 };
 
+/* ---------- hook ---------- */
 export const useWorkout = () => {
   const context = useContext(WorkoutContext);
   if (!context) throw new Error('useWorkout must be used within WorkoutProvider');

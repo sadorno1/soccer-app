@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     textAlign: 'center',
+    marginTop: 20,
+
   },
   fieldGrid: {
     flexDirection: 'row',

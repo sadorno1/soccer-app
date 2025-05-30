@@ -112,6 +112,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: 20,
+    marginTop: 20,
+
+
   },
 
   /* -------- Start button styles -------- */
