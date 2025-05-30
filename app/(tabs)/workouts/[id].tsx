@@ -22,9 +22,14 @@ export default function WorkoutDetailScreen() {
   const { workouts } = useWorkout();
 
   const workout = workouts.find((w) => w.id === id);
+  const hasExercises = !!workout?.exercises?.length;   // ← TRUE when ≥1 exercise
 
   const handleAddExercise = () => {
     router.push({ pathname: '/(tabs)/select-position', params: { target: id } });
+  };
+
+  const handleStartWorkout = () => {
+    router.push({ pathname: '/(tabs)/workouts/[id]/start', params: { id } });
   };
 
   if (!workout) {
@@ -38,15 +43,27 @@ export default function WorkoutDetailScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{workout.name}</Text>
-      <Pressable style={styles.startButton}
-      onPress={() => 
-        router.push({
-       pathname: '/(tabs)/workouts/[id]/start',
-       params: { id },})}>
-      <Text style={styles.startText}>Start workout</Text>
+
+      {/* Start button – color + disabled state driven by hasExercises */}
+      <Pressable
+        style={[
+          styles.startButtonBase,
+          hasExercises ? styles.startEnabled : styles.startDisabled,
+        ]}
+        onPress={handleStartWorkout}
+        disabled={!hasExercises}
+      >
+        <Text
+          style={[
+            styles.startTextBase,
+            hasExercises ? styles.startTextEnabled : styles.startTextDisabled,
+          ]}
+        >
+          Start workout
+        </Text>
       </Pressable>
 
-
+      {/* Header row */}
       <View style={styles.row}>
         <Text style={styles.section}>Exercises</Text>
         <Pressable onPress={handleAddExercise}>
@@ -54,7 +71,8 @@ export default function WorkoutDetailScreen() {
         </Pressable>
       </View>
 
-      {workout.exercises?.length ? (
+      {/* Exercise list or empty state */}
+      {hasExercises ? (
         <FlatList
           data={workout.exercises}
           keyExtractor={(item, i) => item.name + i}
@@ -71,7 +89,9 @@ export default function WorkoutDetailScreen() {
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.noText}>No exercises</Text>
-          <Text style={styles.subText}>Add exercises to your workout to start working out.</Text>
+          <Text style={styles.subText}>
+            Add exercises to your workout to start working out.
+          </Text>
           <Pressable style={styles.cta} onPress={handleAddExercise}>
             <Text style={styles.ctaText}>Add Exercise</Text>
           </Pressable>
@@ -93,18 +113,33 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 20,
   },
-  startButton: {
-    backgroundColor: COLORS.surface,
+
+  /* -------- Start button styles -------- */
+  startButtonBase: {
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 24,
   },
-  startText: {
-    color: COLORS.textMuted,
+  startEnabled: {
+    backgroundColor: COLORS.primary,
+  },
+  startDisabled: {
+    backgroundColor: COLORS.surface,
+    opacity: 0.6,
+  },
+  startTextBase: {
     fontWeight: '600',
     fontSize: 16,
   },
+  startTextEnabled: {
+    color: COLORS.background,
+  },
+  startTextDisabled: {
+    color: COLORS.textMuted,
+  },
+
+  /* -------- Rest of the styles -------- */
   section: {
     fontSize: 18,
     fontWeight: '600',
@@ -144,7 +179,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   ctaText: {
-    color: COLORS.text,
+    color: COLORS.background,
     fontWeight: '600',
     fontSize: 14,
   },
