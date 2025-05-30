@@ -213,7 +213,10 @@ export default function StartWorkoutScreen() {
         <Pressable onPress={goPrev} disabled={exIdx === 0 && setIdx === 0 && phase === 'ready'}>
           <Text style={styles.navArrow}>←</Text>
         </Pressable>
-        <Pressable style={styles.finishBtn} onPress={() => router.back()}>
+        <Pressable style={styles.finishBtn} onPress={() => router.push({
+          pathname: '/workouts/[id]/complete',
+          params: { id }, 
+        })}>
           <Text style={styles.finishText}>End workout</Text>
         </Pressable>
         <Pressable onPress={goNext}>
