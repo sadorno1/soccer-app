@@ -11,7 +11,7 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: COLORS.background,
           borderTopColor: 'transparent',
-          height: 78,
+          height: 80,
           paddingBottom: 10,
           paddingTop: 6,
         },
@@ -35,22 +35,16 @@ export default function TabLayout() {
       <Tabs.Screen name="records"   options={{ title: 'Records' }} />
       <Tabs.Screen name="settings"  options={{ title: 'Settings' }} />
 
-      {/* workflow screens – hide tab bar */}
-      <Tabs.Screen
-        name="workouts/[id]/start"
-        options={{
-          href: null,
-          // Completely hide the bar while this route is focused
-          tabBarStyle: { display: 'none' },
-        }}
-      />
-      <Tabs.Screen
-        name="workouts/[id]/complete"
-        options={{
-          href: null,
-          tabBarStyle: { display: 'none' },
-        }}
-      />
+
+      {/* hide from tab bar */}
+      <Tabs.Screen name="workouts/[id]/start" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="workouts/[id]/complete" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="my-workouts" options={{ href: null }} />
+      <Tabs.Screen name="select-position" options={{ href: null }} />
+      <Tabs.Screen name="exercises/[position]" options={{ href: null }} />
+      <Tabs.Screen name="workouts/[id]" options={{ href: null }} />
+
+
     </Tabs>
   );
 }
