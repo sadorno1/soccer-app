@@ -1,4 +1,3 @@
-// app/(tabs)/select-position.tsx
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
@@ -23,7 +22,14 @@ export default function SelectPositionScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Select Position</Text>
+      <View style={styles.headerRow}>
+        <Pressable onPress={() => router.back()}>
+          <Text style={styles.backText}>{'< Back'}</Text>
+        </Pressable>
+        <Text style={styles.header}>Select Position</Text>
+        <View style={{ width: 60 }} />
+      </View>
+
       <View style={styles.fieldGrid}>
         {positions.map((p) => (
           <Pressable
@@ -35,6 +41,7 @@ export default function SelectPositionScreen() {
           </Pressable>
         ))}
       </View>
+
       <Pressable
         style={styles.allBtn}
         onPress={() => selectPosition('all-positions')}
@@ -51,14 +58,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     padding: 24,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    marginTop: 20,
+  },
+  backText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
   header: {
     fontSize: 24,
     color: COLORS.text,
     fontWeight: '600',
-    marginBottom: 16,
     textAlign: 'center',
-    marginTop: 20,
-
   },
   fieldGrid: {
     flexDirection: 'row',

@@ -34,7 +34,7 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Quick Stats</Text>
       <View style={styles.card}>
         <Text style={styles.statLabel}>PERSONAL RECORD</Text>
-        <Text style={styles.statValue}>Longest Plank</Text>
+        <Text style={styles.statValue}>2 touch</Text>
       </View>
 
       <View style={styles.statsRow}>
@@ -46,10 +46,7 @@ export default function HomeScreen() {
           <Text style={styles.statLabel}>WORKOUTS THIS WEEK</Text>
           <Text style={styles.statValue}>3</Text>
         </View>
-        <View style={styles.statBlock}>
-          <Text style={styles.statLabel}>CURRENT STREAK</Text>
-          <Text style={styles.statValue}>5 Days</Text>
-        </View>
+        
       </View>
     </View>
   );

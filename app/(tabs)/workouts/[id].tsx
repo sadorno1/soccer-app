@@ -1,18 +1,19 @@
-// app/workouts/[id].tsx
-import ExerciseCard from '@/components/ExerciseCard';
-import { COLORS } from '@/constants/Colors';
-import { useWorkout } from '@/context/WorkoutContext';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Swipeable } from 'react-native-gesture-handler';
+// app/(tabs)/workouts/[id].tsx
+
+import React, { useEffect } from 'react';
 import {
-  FlatList,
+  View,
+  Text,
   Pressable,
   StyleSheet,
-  Text,
-  View,
+  FlatList,
 } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useWorkout } from '@/context/WorkoutContext';
+import { Swipeable } from 'react-native-gesture-handler';
+import ExerciseCard from '@/components/ExerciseCard';
+import { COLORS } from '@/constants/Colors';
 
-/* ---------- helper map ---------- */
 const SUBCATEGORY_COLORS: Record<string, string> = {
   'Ball Manipulation': '#FFA726',
   Dribbling: '#66BB6A',
@@ -28,31 +29,54 @@ const SUBCATEGORY_COLORS: Record<string, string> = {
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { workouts, deleteExerciseFromWorkout } = useWorkout();
+  const {
+    workouts,
+    deleteExerciseFromWorkout,
+    activeWorkoutId,
+    clearActiveWorkout,
+    setActiveWorkout,
+  } = useWorkout();
 
-  const workout = workouts.find((w) => w.id === id);
-  const hasExercises = !!workout?.exercises?.length;
+  // Find the workout by ID
+  const workout = workouts.find(w => w.id === id);
+
+  // If it's ever removed (e.g. deleted), send the user back to the list
+  useEffect(() => {
+    if (!workout) {
+      router.replace('/my-workouts');
+    }
+  }, [workout]);
+
+  // Don't render anything until guard runs
+  if (!workout) return null;
+
+  const isActive = activeWorkoutId === id;
+  const hasExercises = workout.exercises.length > 0;
 
   const handleAddExercise = () => {
-    router.push({ pathname: '/(tabs)/select-position', params: { target: id } });
+    router.push({
+      pathname: '/(tabs)/select-position',
+      params: { target: id },
+    });
   };
 
   const handleStartWorkout = () => {
-    router.push({ pathname: '/(tabs)/workouts/[id]/start', params: { id } });
+    if (!hasExercises) return;
+    setActiveWorkout(id); // mark this workout "in progress"
+    router.replace({
+      pathname: '/workouts/[id]/start',
+      params: { id },
+    });
   };
 
-  if (!workout) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Workout Not Found</Text>
-      </View>
-    );
-  }
+  const handleDeleteExercise = (exerciseId: string) => {
+    if (isActive) clearActiveWorkout();
+    deleteExerciseFromWorkout(id, exerciseId);
+  };
 
-  /* ---------- swipe delete action ---------- */
-  const renderRightActions = (idx: number) => (
+  const renderRightActions = (exerciseId: string) => (
     <Pressable
-      onPress={() => deleteExerciseFromWorkout(id!, idx)}
+      onPress={() => handleDeleteExercise(exerciseId)}
       style={styles.deleteBox}
     >
       <Text style={styles.deleteText}>Delete</Text>
@@ -61,32 +85,56 @@ export default function WorkoutDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{workout.name}</Text>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <Pressable onPress={() => router.back()}>
+          <Text style={styles.backText}>{'< Back'}</Text>
+        </Pressable>
+        <Text style={styles.title}>{workout.name}</Text>
+        <View style={{ width: 60 }} />
+      </View>
 
-      {/* Start button */}
+      {/* Active banner */}
+      {isActive && (
+        <View style={styles.activeWorkoutBanner}>
+          <Text style={styles.activeWorkoutText}>WORKOUT IN PROGRESS</Text>
+        </View>
+      )}
+
+      {/* Start / Continue button */}
       <Pressable
         style={[
           styles.startButtonBase,
           hasExercises ? styles.startEnabled : styles.startDisabled,
+          isActive && styles.activeWorkoutButton,
         ]}
         onPress={handleStartWorkout}
-        disabled={!hasExercises}
+        disabled={!hasExercises || isActive}
       >
         <Text
           style={[
             styles.startTextBase,
-            hasExercises ? styles.startTextEnabled : styles.startTextDisabled,
+            hasExercises
+              ? styles.startTextEnabled
+              : styles.startTextDisabled,
           ]}
         >
-          Start workout
+          {isActive ? 'Continue Workout' : 'Start Workout'}
         </Text>
       </Pressable>
 
-      {/* Header row */}
+      {/* Exercises header */}
       <View style={styles.row}>
         <Text style={styles.section}>Exercises</Text>
-        <Pressable onPress={handleAddExercise}>
-          <Text style={styles.addLink}>Add</Text>
+        <Pressable onPress={handleAddExercise} disabled={isActive}>
+          <Text
+            style={[
+              styles.addLink,
+              isActive && styles.disabledAddLink,
+            ]}
+          >
+            Add
+          </Text>
         </Pressable>
       </View>
 
@@ -94,18 +142,24 @@ export default function WorkoutDetailScreen() {
       {hasExercises ? (
         <FlatList
           data={workout.exercises}
-          keyExtractor={(_, idx) => `${workout.id}-${idx}`}
-          renderItem={({ item, index }) => (
+          keyExtractor={item => `${workout.id}-${item.id}`}
+          renderItem={({ item }) => (
             <Swipeable
-              renderRightActions={() => renderRightActions(index)}
+              renderRightActions={() =>
+                !isActive && renderRightActions(item.id)
+              }
               overshootRight={false}
+              enabled={!isActive}
             >
               <ExerciseCard
                 name={item.name}
                 subcategory={item.subcategory}
                 sets={item.sets}
                 weight={item.weight}
-                color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
+                color={
+                  SUBCATEGORY_COLORS[item.subcategory] ??
+                  COLORS.primary
+                }
               />
             </Swipeable>
           )}
@@ -117,7 +171,11 @@ export default function WorkoutDetailScreen() {
           <Text style={styles.subText}>
             Add exercises to your workout to start working out.
           </Text>
-          <Pressable style={styles.cta} onPress={handleAddExercise}>
+          <Pressable
+            style={styles.cta}
+            onPress={handleAddExercise}
+            disabled={isActive}
+          >
             <Text style={styles.ctaText}>Add Exercise</Text>
           </Pressable>
         </View>
@@ -126,22 +184,42 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-/* ---------- styles ---------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
     padding: 20,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.text,
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
     marginTop: 20,
   },
-
-  /* start button */
+  backText: {
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  activeWorkoutBanner: {
+    backgroundColor: COLORS.warning,
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  activeWorkoutText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 12,
+  },
   startButtonBase: {
     padding: 16,
     borderRadius: 12,
@@ -150,21 +228,19 @@ const styles = StyleSheet.create({
   },
   startEnabled: { backgroundColor: COLORS.primary },
   startDisabled: { backgroundColor: COLORS.surface, opacity: 0.6 },
+  activeWorkoutButton: { backgroundColor: COLORS.warning },
   startTextBase: { fontWeight: '600', fontSize: 16 },
   startTextEnabled: { color: COLORS.background },
   startTextDisabled: { color: COLORS.textMuted },
-
-  /* header row */
   section: { fontSize: 18, fontWeight: '600', color: COLORS.text },
   addLink: { color: COLORS.primary, fontWeight: '600', fontSize: 14 },
+  disabledAddLink: { opacity: 0.5 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
-
-  /* swipe delete */
   deleteBox: {
     backgroundColor: '#ef4444',
     justifyContent: 'center',
@@ -173,8 +249,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   deleteText: { color: '#fff', fontWeight: '700' },
-
-  /* empty state */
   emptyState: { alignItems: 'center', marginTop: 40 },
   noText: {
     fontSize: 18,
@@ -194,5 +268,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
   },
-  ctaText: { color: COLORS.background, fontWeight: '600', fontSize: 14 },
+  ctaText: {
+    color: COLORS.background,
+    fontWeight: '600',
+    fontSize: 14,
+  },
 });

@@ -13,8 +13,11 @@ export interface Exercise {
   rest: number;
   perFoot?: boolean;
   imageUri? : string;
-  videoUrl? : string;
-}
+  videoUrls?: {
+    default?: string;
+    left?: string;
+    right?: string;
+  };}
 
 export const sampleExercises: Exercise[] = [
   {
@@ -687,6 +690,11 @@ export const sampleExercises: Exercise[] = [
   set_duration: 10,
   rest: 30,
   perFoot: true,
+  videoUrls: {
+  left: "https://firebasestorage.googleapis.com/v0/b/soccer-app-7147f.firebasestorage.app/o/videos%2Fpassing-open-recycle-left.mp4?alt=media&token=da468ada-6631-4a2b-b780-8e31938348bc",
+  right: "https://firebasestorage.googleapis.com/v0/b/soccer-app-7147f.firebasestorage.app/o/videos%2Fpassing-open-recycle-right.mp4?alt=media&token=f1922143-de46-4fdc-b918-a080f8990253"
+}
+
 },
 {
   id: 'passing-open-forward',

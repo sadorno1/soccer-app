@@ -1,44 +1,45 @@
-// context/WorkoutContext.tsx
-import { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react'
 
 /* ---------- types ---------- */
-interface Exercise {
-  id: string;
-  name: string;
-  subcategory: string;
-  positionCategory: string[];
-  setup: string;
-  description: string;
-  uses_tracking: boolean;
-  sets: number;
-  set_duration: number;
-  rest: number;
-  perFoot?: boolean;
-  weight?: string;
+export interface Exercise {
+  id: string
+  name: string
+  subcategory: string
+  positionCategory: string[]
+  setup: string
+  description: string
+  uses_tracking: boolean
+  sets: number
+  set_duration: number
+  rest: number
+  perFoot?: boolean
+  weight?: string
+  // progress-tracking fields go here, e.g. completedSets?: number
 }
 
-interface Workout {
-  id: string;
-  name: string;
-  exercises: Exercise[];
-  permanent?: boolean;  // keep Quick Workout undeletable
-  tag?: string;
-  color?: string;
-  [key: string]: any;
+export interface Workout {
+  id: string
+  name: string
+  exercises: Exercise[]
+  permanent?: boolean
+  tag?: string
+  color?: string
 }
 
-interface WorkoutContextType {
-  workouts: Workout[];
-  addWorkout: (w: Workout) => void;
-  deleteWorkout: (id: string) => void;
-  addExerciseToWorkout: (workoutId: string, exercise: Exercise) => void;
-  deleteExerciseFromWorkout: (workoutId: string, exerciseIdx: number) => void;
-
-  
+export interface WorkoutContextType {
+  workouts: Workout[]
+  activeWorkoutId: string | null
+  addWorkout: (w: Workout) => void
+  deleteWorkout: (id: string) => void
+  addExerciseToWorkout: (workoutId: string, ex: Exercise) => void
+  deleteExerciseFromWorkout: (workoutId: string, exId: string) => void
+  setActiveWorkout: (id: string | null) => void
+  clearActiveWorkout: () => void
+  resetWorkoutProgress: (workoutId: string) => void
+  completeWorkoutSession: (workoutId: string) => void
 }
 
-/* ---------- context ---------- */
-const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined);
+const WorkoutContext = createContext<WorkoutContextType | undefined>(undefined)
 
 export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
   const [workouts, setWorkouts] = useState<Workout[]>([
@@ -46,48 +47,84 @@ export const WorkoutProvider = ({ children }: { children: ReactNode }) => {
       id: 'quick',
       name: 'Quick Workout',
       exercises: [],
+      permanent: true,
       tag: 'Quick',
       color: '#0ea5e9',
-      permanent: true,
     },
-  ]);
+  ])
+  const [activeWorkoutId, setActiveWorkoutId] = useState<string | null>(null)
 
-  const addWorkout = (w: Workout) => setWorkouts((prev) => [...prev, w]);
+  /* ---------- CRUD helpers ---------- */
+  const addWorkout = (w: Workout) => setWorkouts(prev => [...prev, w])
 
   const deleteWorkout = (id: string) =>
-    setWorkouts((prev) => prev.filter((w) => w.id !== id || w.permanent));
+    setWorkouts(prev => prev.filter(w => w.id !== id || w.permanent))
 
-  const deleteExerciseFromWorkout = (workoutId: string, exerciseIdx: number) =>
-  setWorkouts(prev =>
-    prev.map(w =>
-      w.id === workoutId
-        ? { ...w, exercises: w.exercises.filter((_, i) => i !== exerciseIdx) }
-        : w,
-    ),
-  );
+  const addExerciseToWorkout = (workoutId: string, ex: Exercise) =>
+    setWorkouts(prev =>
+      prev.map(w =>
+        w.id === workoutId ? { ...w, exercises: [...w.exercises, ex] } : w
+      )
+    )
 
-  const addExerciseToWorkout = (workoutId: string, exercise: Exercise) => {
-    setWorkouts((prev) =>
-      prev.map((w) =>
+  const deleteExerciseFromWorkout = (workoutId: string, exId: string) =>
+    setWorkouts(prev =>
+      prev.map(w =>
         w.id === workoutId
-          ? { ...w, exercises: [...w.exercises, exercise] }
+          ? { ...w, exercises: w.exercises.filter(e => e.id !== exId) }
           : w
       )
-    );
-  };
+    )
+
+  /* ---------- session helpers ---------- */
+  const setActiveWorkout = (id: string | null) => setActiveWorkoutId(id)
+  const clearActiveWorkout = () => setActiveWorkoutId(null)
+
+  const resetWorkoutProgress = (workoutId: string) =>
+    setWorkouts(prev =>
+      prev.map(w =>
+        w.id === workoutId
+          ? {
+              ...w,
+              exercises: w.exercises.map(e => ({
+                ...e,
+                /* wipe any progress fields here */
+              })),
+            }
+          : w
+      )
+    )
+
+  /** Mark workout finished, optionally clear progress, then leave session */
+  const completeWorkoutSession = (workoutId: string) => {
+  // (optional) log stats or clear in-progress progress fields
+  setActiveWorkoutId(null)  // ← this must happen
+}
+
+
 
   return (
     <WorkoutContext.Provider
-      value={{ workouts, addWorkout, deleteWorkout, addExerciseToWorkout, deleteExerciseFromWorkout, }}
+      value={{
+        workouts,
+        activeWorkoutId,
+        addWorkout,
+        deleteWorkout,
+        addExerciseToWorkout,
+        deleteExerciseFromWorkout,
+        setActiveWorkout,
+        clearActiveWorkout,
+        resetWorkoutProgress,
+        completeWorkoutSession,
+      }}
     >
       {children}
     </WorkoutContext.Provider>
-  );
-};
+  )
+}
 
-/* ---------- hook ---------- */
 export const useWorkout = () => {
-  const context = useContext(WorkoutContext);
-  if (!context) throw new Error('useWorkout must be used within WorkoutProvider');
-  return context;
-};
+  const ctx = useContext(WorkoutContext)
+  if (!ctx) throw new Error('useWorkout must be used within a WorkoutProvider')
+  return ctx
+}

@@ -1,226 +1,315 @@
 // app/(tabs)/workouts/[id]/start.tsx
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+
+import { COLORS } from '@/constants/Colors'
+import { useWorkout } from '@/context/WorkoutContext'
+import { Ionicons } from '@expo/vector-icons'
+import { ResizeMode, Video } from 'expo-av'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import React, { useEffect, useRef, useState } from 'react'
 import {
-  Image,
+  ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { COLORS } from '@/constants/Colors';
-import { useWorkout } from '@/context/WorkoutContext';
+} from 'react-native'
 
 export default function StartWorkoutScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const { workouts } = useWorkout();
-  const workout = workouts.find((w) => w.id === id);
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const router = useRouter()
+  const {
+    workouts,
+    activeWorkoutId,
+    setActiveWorkout,
+    completeWorkoutSession,
+  } = useWorkout()
 
-  // indices and phase
-  const [exIdx, setExIdx] = useState(0);
-  const [setIdx, setSetIdx] = useState(0);
-  const [phase, setPhase] = useState<'ready' | 'active' | 'rest'>('ready');
-  const [count, setCount] = useState(10); // initial get-ready
-  const [inputVal, setInputVal] = useState('');
-  const [paused, setPaused] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // ① find the workout
+  const workout = workouts.find(w => w.id === id)
+  if (!workout) return null
 
-  if (!workout) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Workout Not Found</Text>
-      </View>
-    );
-  }
-  const exercise = workout.exercises[exIdx];
+  // ② mark it “in progress” the moment we hit this screen
+  useEffect(() => {
+    setActiveWorkout(id)
+  }, [id])
 
-  const startCountdown = (seconds: number, next: () => void) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCount(seconds);
+  // ③ local state
+  const [exIdx, setExIdx] = useState(0)
+  const [setIdx, setSetIdx] = useState(0)
+  const [phase, setPhase] = useState<'ready' | 'active' | 'rest'>('ready')
+  const [count, setCount] = useState(10)
+
+  // ④ reset indices whenever a fresh session begins
+  useEffect(() => {
+    if (activeWorkoutId === id) {
+      setExIdx(0)
+      setSetIdx(0)
+      setPhase('ready')
+      setCount(10)
+    }
+  }, [activeWorkoutId, id])
+
+  // timers, video, paused, etc.
+  const exercise = workout.exercises[exIdx]
+  const videoRef = useRef<Video>(null)
+  const [videoStatus, setVideoStatus] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [paused, setPaused] = useState(false)
+  const [pauseModalVisible, setPauseModalVisible] = useState(false)
+  const [selectedFoot, setSelectedFoot] =
+    useState<'default' | 'left' | 'right'>('default')
+  const [inputVal, setInputVal] = useState('')
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startCountdown = (secs: number, next: () => void) => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    setCount(secs)
     timerRef.current = setInterval(() => {
       if (!paused) {
-        setCount((c) => {
-          if (c <= 1) {
-            clearInterval(timerRef.current!);
-            next();
-            return 0;
-          }
-          return c - 1;
-        });
+        setCount(c =>
+          c <= 1 ? (clearInterval(timerRef.current!), next(), 0) : c - 1,
+        )
       }
-    }, 1000);
-  };
+    }, 1000)
+  }
 
   useEffect(() => {
-    // cleanup previous timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    // don't start if paused or no exercise
-    if (!exercise) return;
-
-    if (phase === 'ready') {
-      startCountdown(10, () => setPhase('active')); // get ready 10s
-    } else if (phase === 'active') {
-      if (!exercise.uses_tracking) {
-        startCountdown(exercise.set_duration, () => setPhase('rest'));
-      }
-      // uses_tracking: user input handles transition
-    } else if (phase === 'rest') {
-      startCountdown(30, () => {
-        // advance set or exercise
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (phase === 'ready') startCountdown(10, () => setPhase('active'))
+    else if (phase === 'active' && !exercise.uses_tracking)
+      startCountdown(exercise.set_duration, () => setPhase('rest'))
+    else if (phase === 'rest')
+      startCountdown(exercise.rest, () => {
         if (setIdx + 1 < exercise.sets) {
-          setSetIdx((i) => i + 1);
-          setPhase('ready');
+          setSetIdx(i => i + 1)
+          setPhase('ready')
         } else if (exIdx + 1 < workout.exercises.length) {
-          setExIdx((i) => i + 1);
-          setSetIdx(0);
-          setPhase('ready');
-        } else {
-          router.back();
-        }
-      });
-    }
+          setExIdx(i => i + 1)
+          setSetIdx(0)
+          setPhase('ready')
+        } else finishWorkout()
+      })
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [phase, exIdx, setIdx, paused]);
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
+  }, [phase, exIdx, setIdx, paused])
+
+  useEffect(() => {
+    if (exercise.perFoot)
+      setSelectedFoot(setIdx % 2 === 0 ? 'left' : 'right')
+  }, [setIdx])
+
+  const onStatusUpdate = (status: any) => {
+    setVideoStatus(status)
+    if (status.isLoaded && !status.isPlaying && !status.isBuffering)
+      setIsLoading(false)
+  }
+
+  const togglePlayback = async () => {
+    if (videoStatus?.isPlaying) await videoRef.current?.pauseAsync()
+    else await videoRef.current?.playAsync()
+  }
+
+  const getPhaseColor = () =>
+    phase === 'ready'
+      ? COLORS.warning
+      : phase === 'active'
+      ? COLORS.success
+      : COLORS.info
 
   const goPrev = () => {
-    if (phase === 'rest') setPhase('active');
-    else if (phase === 'active') setPhase('ready');
-    else {
-      if (setIdx > 0) {
-        setSetIdx((i) => i - 1);
-        setPhase('rest');
-      } else if (exIdx > 0) {
-        const prevEx = workout.exercises[exIdx - 1];
-        setExIdx((i) => i - 1);
-        setSetIdx(prevEx.sets - 1);
-        setPhase('rest');
-      }
+    if (phase === 'rest') setPhase('active')
+    else if (phase === 'active') setPhase('ready')
+    else if (setIdx > 0) {
+      setSetIdx(i => i - 1)
+      setPhase('rest')
+    } else if (exIdx > 0) {
+      const prev = workout.exercises[exIdx - 1]
+      setExIdx(i => i - 1)
+      setSetIdx(prev.sets - 1)
+      setPhase('rest')
     }
-  };
+  }
 
   const goNext = () => {
-    if (phase === 'ready') setPhase('active');
-    else if (phase === 'active') setPhase('rest');
-    else {
-      if (setIdx + 1 < exercise.sets) {
-        setSetIdx((i) => i + 1);
-        setPhase('ready');
-      } else if (exIdx + 1 < workout.exercises.length) {
-        setExIdx((i) => i + 1);
-        setSetIdx(0);
-        setPhase('ready');
-      } else {
-        router.back();
-      }
-    }
-  };
+    if (phase === 'ready') setPhase('active')
+    else if (phase === 'active') setPhase('rest')
+    else if (setIdx + 1 < exercise.sets) {
+      setSetIdx(i => i + 1)
+      setPhase('ready')
+    } else if (exIdx + 1 < workout.exercises.length) {
+      setExIdx(i => i + 1)
+      setSetIdx(0)
+      setPhase('ready')
+    } else finishWorkout()
+  }
+
+  // ⑤ finish + clear flag + replace route
+  const finishWorkout = () => {
+    completeWorkoutSession(id)
+    router.replace({
+      pathname: '/(tabs)/workouts/[id]/complete',
+      params: { id },
+    })
+  }
 
   return (
     <View style={styles.screen}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.navArrow}>←</Text>
-        </Pressable>
-        <Text style={styles.title}>{exercise.name}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {/* IMAGE */}
-      <Image
-        source={{ uri: exercise.imageUri || 'https://via.placeholder.com/350x150' }}
-        style={styles.image}
-      />
-
-      {/* PILLS */}
-      <View style={styles.pills}>
-        {Array.from({ length: exercise.sets }).map((_, i) => (
-          <View
-            key={i}
-            style={[styles.pill, i === setIdx && styles.pillActive]}>
-            <Text style={i === setIdx ? styles.pillTextActive : styles.pillText}>
-              {i + 1}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      {/* COUNT / INPUT */}
-      <View style={styles.controlRow}>
-        {(phase === 'active' && exercise.uses_tracking) ? (
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.inputField}
-              placeholder="Enter reps"
-              keyboardType="numeric"
-              value={inputVal}
-              onChangeText={setInputVal}
-            />
-            <Pressable style={styles.inputBtn} onPress={() => setPhase('rest')}>
-              <Text style={styles.inputBtnText}>Done</Text>
+      {/* Pause Modal */}
+      <Modal transparent visible={pauseModalVisible} animationType="fade">
+        <View style={styles.modalOverlay} />
+        <View style={styles.pauseModal}>
+          <Text style={styles.modalTitle}>Paused</Text>
+          <View style={styles.modalButtons}>
+            <Pressable style={styles.modalButton} onPress={() => { setPaused(false); setPauseModalVisible(false); }}>
+              <Text style={styles.modalButtonText}>Resume</Text>
+            </Pressable>
+            <Pressable style={styles.modalButton} onPress={() => { setPaused(false); setPauseModalVisible(false); router.push('/'); }}>
+              <Text style={styles.modalButtonText}>Exit</Text>
             </Pressable>
           </View>
-        ) : (
-          <>
-            <Text style={styles.countdown}>
-              {phase === 'ready'
-                ? 'Get ready! '
-                : phase === 'rest'
-                ? 'Rest '
-                : ''}
-              {count}
-            </Text>
-            <Text style={styles.subheading}>
-              {phase === 'active'
-                ? 'Perform the exercise'
-                : phase === 'rest'
-                ? 'Rest up'
-                : ''}
-            </Text>
-          </>
-        )}
-      </View>
+        </View>
+      </Modal>
 
-      {/* PAUSE BUTTON */}
-      <View style={styles.pauseContainer}>
-        <Pressable style={styles.pauseBtn} onPress={() => setPaused((p) => !p)}>
-          <Text style={styles.pauseText}>{paused ? 'Resume' : 'Pause'}</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={32} color={COLORS.primary} />
+        </Pressable>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {exercise.name}
+        </Text>
+        <Pressable
+          onPress={() => { setPaused(true); setPauseModalVisible(true); }}
+          style={styles.headerBtn}
+        >
+          <Ionicons name="pause" size={32} color={COLORS.primary} />
         </Pressable>
       </View>
 
-      {/* DETAILS */}
-      <ScrollView style={styles.detailsContainer}>
-        <Text style={styles.sectionHeading}>Preparation</Text>
-        <Text style={styles.paragraph}>{exercise.setup}</Text>
+      {/* Scrollable content */}
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Video */}
+        <View style={styles.videoContainer}>
+          {exercise.videoUrls && (
+            <>
+              {exercise.perFoot && (
+                <View style={styles.footSwitcher}>
+                  {exercise.videoUrls.left && (
+                    <Pressable
+                      onPress={() => setSelectedFoot('left')}
+                      style={[styles.footBtn, selectedFoot === 'left' && styles.footBtnActive]}
+                    >
+                      <Text style={styles.footText}>L</Text>
+                    </Pressable>
+                  )}
+                  {exercise.videoUrls.right && (
+                    <Pressable
+                      onPress={() => setSelectedFoot('right')}
+                      style={[styles.footBtn, selectedFoot === 'right' && styles.footBtnActive]}
+                    >
+                      <Text style={styles.footText}>R</Text>
+                    </Pressable>
+                  )}
+                </View>
+              )}
+              <Video
+                ref={videoRef}
+                source={{ uri: exercise.videoUrls[selectedFoot] ?? exercise.videoUrls.default! }}
+                style={styles.video}
+                resizeMode={ResizeMode.CONTAIN}
+                useNativeControls={false}
+                isLooping={false}
+                onPlaybackStatusUpdate={onStatusUpdate}
+              />
+              {isLoading && (
+                <ActivityIndicator
+                  style={styles.loading}
+                  size="large"
+                  color={COLORS.primary}
+                />
+              )}
+              {!isLoading && !videoStatus?.isPlaying && (
+                <Pressable onPress={togglePlayback} style={styles.playButton}>
+                  <Text style={styles.playIcon}>▶</Text>
+                </Pressable>
+              )}
+            </>
+          )}
+        </View>
 
-        <Text style={styles.sectionHeading}>Execution</Text>
-        <Text style={styles.paragraph}>{exercise.description}</Text>
+        {/* Timer */}
+        <View style={[styles.timerContainer, { backgroundColor: getPhaseColor() }]}>  
+          {phase === 'active' && exercise.uses_tracking ? (
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                {exercise.perFoot
+                  ? `Reps on ${selectedFoot === 'left' ? 'Left' : 'Right'} foot:`
+                  : 'Reps:'}
+              </Text>
+              <TextInput
+                style={styles.inputField}
+                keyboardType="numeric"
+                value={inputVal}
+                onChangeText={setInputVal}
+              />
+              <Pressable style={styles.inputBtn} onPress={() => setPhase('rest')}>
+                <Text style={styles.inputBtnText}>Done</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.phaseText}>
+                {phase === 'ready'
+                  ? 'Ready'
+                  : phase === 'rest'
+                  ? 'Rest'
+                  : 'Go!'}
+              </Text>
+              <Text style={styles.countdown}>{count}</Text>
+              <Text style={styles.phaseSubtext}>
+                {phase === 'active' ? 'Perform' : 'Next Set'}
+              </Text>
+            </>
+          )}
+        </View>
+
+        {/* Sets Pills */}
+        <View style={styles.pills}>
+          {Array.from({ length: exercise.sets }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.pill,
+                i < setIdx && styles.pillDone,
+                i === setIdx && styles.pillActive,
+              ]}
+            />
+          ))}
+        </View>
+
+        {/* Details */}
+        <View style={styles.details}>
+          <Text style={styles.sectionHeading}>Preparation</Text>
+          <Text style={styles.paragraph}>{exercise.setup}</Text>
+          <Text style={styles.sectionHeading}>Execution</Text>
+          <Text style={styles.paragraph}>{exercise.description}</Text>
+        </View>
       </ScrollView>
 
-      {/* FOOTER */}
+      {/* Footer (fixed) */}
       <View style={styles.footer}>
-        <Pressable onPress={goPrev} disabled={exIdx === 0 && setIdx === 0 && phase === 'ready'}>
-          <Text style={styles.navArrow}>←</Text>
+        <Pressable onPress={goPrev} style={styles.arrowBtn}>
+          <Ionicons name="arrow-back" size={36} color={COLORS.primary} />
         </Pressable>
-        <Pressable style={styles.finishBtn} onPress={() => router.push({
-          pathname: '/workouts/[id]/complete',
-          params: { id }, 
-        })}>
-          <Text style={styles.finishText}>End workout</Text>
+        <Pressable onPress={finishWorkout} style={styles.finishBtn}>
+          <Text style={styles.finishText}>End Workout</Text>
         </Pressable>
-        <Pressable onPress={goNext}>
-          <Text style={styles.navArrow}>→</Text>
+        <Pressable onPress={goNext} style={styles.arrowBtn}>
+          <Ionicons name="arrow-forward" size={36} color={COLORS.primary} />
         </Pressable>
       </View>
     </View>
@@ -229,109 +318,97 @@ export default function StartWorkoutScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.background },
-  container: { flex: 1, padding: 16, backgroundColor: COLORS.background },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-  },
-  title: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginTop: 30, },
-  navArrow: { fontSize: 28, color: COLORS.primary },
-  image: { width: '100%', height: 200, backgroundColor: '#222' },
-
-  pills: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginVertical: 20,
-  },
-  pill: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
     backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  pillActive: { backgroundColor: COLORS.primary },
-  pillText: { color: COLORS.text, fontSize: 18 },
-  pillTextActive: { color: COLORS.background, fontSize: 18 },
+  headerBtn: { width: 40, alignItems: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', fontSize: 24, fontWeight: '700', color: COLORS.text },
 
-  controlRow: {
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  pauseModal: {
+    position: 'absolute',
+    top: '40%',
+    left: '10%',
+    right: '10%',
+    backgroundColor: COLORS.surface,
+    padding: 20,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 12,
   },
-  countdown: {
-    fontSize: 36,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: COLORS.text,
-  },
-  subheading: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  pauseContainer: {
+  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 12, color: COLORS.text },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
+  modalButton: { flex: 1, marginHorizontal: 8, paddingVertical: 10, backgroundColor: COLORS.primary, borderRadius: 8, alignItems: 'center' },
+  modalButtonText: { color: 'white', fontWeight: '600' },
+
+  content: { flex: 1 },
+  contentContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
+
+  videoContainer: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    backgroundColor: '#000',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  pauseBtn: {
-    padding: 8,
-    backgroundColor: COLORS.surface,
-    borderRadius: 8,
-    width: 100,
-    alignItems: 'center',
-  },
-  pauseText: { color: COLORS.primary, fontWeight: '600' },
+  video: { width: '100%', height: '100%' },
+  loading: { position: 'absolute' },
+  playButton: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
+  playIcon: { fontSize: 48, color: 'white' },
 
-  inputContainer: {
+  footSwitcher: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
     flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
   },
-  inputField: {
-    borderWidth: 1,
-    borderColor: COLORS.textMuted,
-    borderRadius: 8,
-    padding: 8,
-    width: 80,
-    textAlign: 'center',
-    marginRight: 12,
-    color: COLORS.text,
-  },
-  inputBtn: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  inputBtnText: { color: COLORS.background, fontWeight: '600' },
+  footBtn: { padding: 6 },
+  footBtnActive: { backgroundColor: COLORS.primary },
+  footText: { color: 'white', fontWeight: '600' },
 
-  detailsContainer: { flex: 1, paddingHorizontal: 16 },
-  sectionHeading: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 12,
-    color: COLORS.text,
-  },
-  paragraph: { fontSize: 14, color: COLORS.text, marginTop: 4 },
+  timerContainer: { borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 16 },
+  phaseText: { fontSize: 22, fontWeight: '700', color: 'white' },
+  countdown: { fontSize: 56, fontWeight: '700', color: 'white' },
+  phaseSubtext: { color: 'white', opacity: 0.9, marginTop: 4 },
+  inputContainer: { width: '100%', alignItems: 'center' },
+  inputLabel: { color: 'white', marginBottom: 8 },
+  inputField: { backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 24, width: 120, textAlign: 'center', padding: 8, borderRadius: 8, marginBottom: 8 },
+  inputBtn: { backgroundColor: 'white', padding: 8, borderRadius: 6 },
+  inputBtnText: { color: COLORS.primary, fontWeight: '600' },
+
+  pills: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
+  pill: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface, marginHorizontal: 6, borderWidth: 2, borderColor: COLORS.surface },
+  pillDone: { backgroundColor: COLORS.successLight, borderColor: COLORS.success },
+  pillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+
+  details: { marginBottom: 24 },
+  sectionHeading: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginVertical: 8 },
+  paragraph: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
 
   footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: COLORS.surface,
-  },
-  finishBtn: {
-    paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
+    paddingHorizontal: 32,
+    backgroundColor: COLORS.surface,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
-  finishText: { color: COLORS.background, fontWeight: '600' },
+  arrowBtn: { padding: 8 },
+  finishBtn: { padding: 12, backgroundColor: COLORS.error, borderRadius: 8 },
+  finishText: { color: 'white', fontWeight: '700' },
 });
