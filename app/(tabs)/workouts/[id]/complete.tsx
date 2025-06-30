@@ -1,15 +1,23 @@
 // app/(tabs)/workouts/[id]/complete.tsx
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
+import { Ionicons } from '@expo/vector-icons';
+
+type RecordsMap = Record<string, number>;
 
 export default function WorkoutCompleteScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, records } = useLocalSearchParams<{ id: string; records?: string }>();
   const router = useRouter();
   const { workouts } = useWorkout();
   const workout = workouts.find((w) => w.id === id);
+
+  // parse the passed records JSON (or empty map)
+  const parsedRecords: RecordsMap = records
+    ? JSON.parse(records)
+    : {};
 
   if (!workout) {
     return (
@@ -24,9 +32,23 @@ export default function WorkoutCompleteScreen() {
     0
   );
 
+  // build a list of { id, name, best } for FlatList
+  const recordList = workout.exercises
+    .filter((ex) => parsedRecords[ex.id] != null)
+    .map((ex) => ({
+      id: ex.id,
+      name: ex.name,
+      best: parsedRecords[ex.id],
+    }));
+
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>🏆</Text>
+      <Ionicons
+        name="trophy"
+        size={64}
+        color={COLORS.primary}
+        style={styles.icon}
+      />
       <Text style={styles.title}>Workout Complete</Text>
       <Text style={styles.subtitle}>{workout.name}</Text>
 
@@ -35,9 +57,26 @@ export default function WorkoutCompleteScreen() {
         <Text style={styles.metric}>{totalSets} Sets</Text>
       </View>
 
-      {/* Optional record summary could go here */}
+      {recordList.length > 0 && (
+        <View style={styles.records}>
+          <Text style={styles.recordsTitle}>Your Personal Bests</Text>
+          <FlatList
+            data={recordList}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <View style={styles.recordRow}>
+                <Text style={styles.recordName}>{item.name}</Text>
+                <Text style={styles.recordValue}>{item.best} reps</Text>
+              </View>
+            )}
+          />
+        </View>
+      )}
 
-      <Pressable style={styles.doneBtn} onPress={() => router.replace('/')}> 
+      <Pressable
+        style={styles.doneBtn}
+        onPress={() => router.replace('/')}
+      >
         <Text style={styles.doneText}>Return Home</Text>
       </Pressable>
     </View>
@@ -53,7 +92,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   icon: {
-    fontSize: 48,
     marginBottom: 12,
   },
   title: {
@@ -68,12 +106,40 @@ const styles = StyleSheet.create({
   },
   metrics: {
     marginBottom: 32,
+    alignItems: 'center',
   },
   metric: {
     fontSize: 16,
     color: COLORS.text,
-    textAlign: 'center',
     marginVertical: 4,
+  },
+  records: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  recordsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  recordRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  recordName: {
+    fontSize: 16,
+    color: COLORS.text,
+  },
+  recordValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   doneBtn: {
     backgroundColor: COLORS.primary,
