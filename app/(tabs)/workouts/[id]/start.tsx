@@ -16,7 +16,7 @@ import {
 } from 'react-native'
 
 // Firebase imports
-import { db } from '@/firebase'
+import { db } from '@/lib/firebase'
 import { addDoc, collection } from 'firebase/firestore'
 
 type Phase = 'ready' | 'active' | 'rest'

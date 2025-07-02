@@ -13,9 +13,11 @@ export interface Exercise {
   set_duration: number;
   rest: number;
   perFoot?: boolean;
-  weight?: string;
-  // add any progress fields you need, e.g. completedSets?: number;
-}
+  videoUrls: {
+    default?: string;
+    left?: string;
+    right?: string;
+  };}
 
 export interface Workout {
   id: string;

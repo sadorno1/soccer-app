@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react'
-import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useWorkout } from '@/context/WorkoutContext'
-import { Swipeable } from 'react-native-gesture-handler'
 import ExerciseCard from '@/components/ExerciseCard'
 import { COLORS } from '@/constants/Colors'
+import { useWorkout } from '@/context/WorkoutContext'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import React, { useEffect, useState } from 'react'
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Swipeable } from 'react-native-gesture-handler'
 
 
 const SUBCATEGORY_COLORS: Record<string, string> = {
@@ -38,7 +38,13 @@ export default function WorkoutDetailScreen() {
   if (!workout) return null
 
   const isActive = activeWorkoutId === id
-  const hasExercises = workout.exercises.length > 0
+  const [hasExercises, setHasExercises] = useState(
+    workout.exercises.length > 0,
+  );
+
+  useEffect(() => {
+    setHasExercises(workout.exercises.length > 0);
+  }, [workout.exercises]);
 
   // navigate to add-exercise flow
   const handleAdd = () =>
@@ -53,8 +59,18 @@ export default function WorkoutDetailScreen() {
 
   // delete an exercise, clearing session if active
   const handleDelete = (exId: string) => {
-    if (isActive) clearActiveWorkout()
+    console.log("Delete item 1")
+    if (isActive) {
+          console.log("Delete item 2")
+
+      clearActiveWorkout()
+          console.log("Delete item 3")
+
+    } // not implemented
     deleteExerciseFromWorkout(id, exId)
+    console.log("Delete item 4")
+    setHasExercises(workout.exercises.length - 1 > 0);
+    // if workout length is 0, 
   }
 
   return (
@@ -117,7 +133,6 @@ export default function WorkoutDetailScreen() {
                 name={item.name}
                 subcategory={item.subcategory}
                 sets={item.sets}
-                weight={item.weight}
                 color={
                   SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary
                 }

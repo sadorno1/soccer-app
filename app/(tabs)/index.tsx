@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
 import { useWorkout } from '@/context/WorkoutContext';
+import 'expo-router/entry';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function HomeScreen() {
         style={styles.startButton}
         onPress={() => router.push('/my-workouts')}
       >
-        <Text style={styles.buttonText}>Start Workout</Text>
+        <Text style={styles.buttonText}>START WORKOUT</Text>
       </Pressable>
 
       <Text style={styles.sectionTitle}>Upcoming Workout</Text>
