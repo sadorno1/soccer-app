@@ -9,7 +9,7 @@ import 'expo-router/entry';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { workouts } = useWorkout(); // 👈 new
+  const { workouts } = useWorkout(); 
 
   const upcomingWorkout = workouts.find((w) => !w.permanent);
 
@@ -21,7 +21,7 @@ export default function HomeScreen() {
         style={styles.startButton}
         onPress={() => router.push('/my-workouts')}
       >
-        <Text style={styles.buttonText}>START WORKOUTTTTT</Text>
+        <Text style={styles.buttonText}>START WORKOUT</Text>
       </Pressable>
 
       <Text style={styles.sectionTitle}>Upcoming Workout</Text>

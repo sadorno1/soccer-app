@@ -1,4 +1,7 @@
-import { useRouter } from 'expo-router';
+// app/signup.tsx
+import 'react-native-get-random-values';
+import 'react-native-url-polyfill/auto';
+
 import React, { useState } from 'react';
 import {
   View,
@@ -11,29 +14,34 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter, Link } from 'expo-router';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
-
-export default function LoginScreen({ navigation }: any) {
+export default function SignupScreen() {
   const router = useRouter();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    setError(null);
-    if (!email || !password) return setError('Enter both email and password');
+  const handleSignup = async () => {
+  setError(null);
+  if (!email || !password) return setError('Enter email and password');
+  if (password !== confirm) return setError('Passwords do not match');
+
+  try {
     setLoading(true);
-    try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    await createUserWithEmailAndPassword(auth, email.trim(), password);
+    router.replace('/login'); 
+  } catch (e: any) {
+    setError(e.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <KeyboardAvoidingView
@@ -41,14 +49,12 @@ export default function LoginScreen({ navigation }: any) {
       style={styles.root}
     >
       <View style={styles.card}>
-        {/* logo */}
         <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
-
-        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.title}>Create an account</Text>
 
         <TextInput
           placeholder="Email"
-          placeholderTextColor="#9ca3af" 
+        placeholderTextColor="#9ca3af" 
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -63,25 +69,35 @@ export default function LoginScreen({ navigation }: any) {
           onChangeText={setPassword}
           style={styles.input}
         />
+        <TextInput
+          placeholder="Confirm password"
+           placeholderTextColor="#9ca3af" 
+          secureTextEntry
+          value={confirm}
+          onChangeText={setConfirm}
+          style={styles.input}
+        />
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
+          onPress={handleSignup}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>Sign in</Text>}
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            <Text style={styles.buttonText}>Sign up</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/signup')}>
-          <Text style={styles.link}>No account? Create one</Text>
-        </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push('/forgot_password')}>
-        <Text style={styles.link}>Forgot password?</Text>
-      </TouchableOpacity>
-
+        {/* Use Link for client-side navigation in Expo Router */}
+        <Link href="/login" asChild>
+          <TouchableOpacity>
+            <Text style={styles.link}>Already have an account? Sign in</Text>
+          </TouchableOpacity>
+        </Link>
       </View>
     </KeyboardAvoidingView>
   );
@@ -119,7 +135,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#7385a0ff',
+    borderColor: '#d1d5db',
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -137,6 +153,4 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   link: { color: '#2563eb', textAlign: 'center', marginTop: 4 },
   error: { color: '#dc2626', textAlign: 'center', marginBottom: 8 },
-  forgot: { color: '#2563eb', textAlign: 'center', marginTop: 8 },
-
 });
