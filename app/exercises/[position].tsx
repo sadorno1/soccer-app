@@ -47,7 +47,7 @@ const handleAdd = (exercise: typeof sampleExercises[number]) => {
 
   // Jump straight back to the select-position screen instead of Home
   router.replace({
-    pathname: '/(tabs)/workouts/[id]',
+    pathname: '/workouts/[id]',
     params: { id: workoutId },   // pass the workout ID back along
   });
 };

@@ -21,7 +21,7 @@ export default function HomeScreen() {
         style={styles.startButton}
         onPress={() => router.push('/my-workouts')}
       >
-        <Text style={styles.buttonText}>START WORKOUT</Text>
+        <Text style={styles.buttonText}>START WORKOUTTTTT</Text>
       </Pressable>
 
       <Text style={styles.sectionTitle}>Upcoming Workout</Text>

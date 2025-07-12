@@ -48,13 +48,13 @@ export default function WorkoutDetailScreen() {
 
   // navigate to add-exercise flow
   const handleAdd = () =>
-    router.push({ pathname: '/(tabs)/select-position', params: { target: id } })
+    router.push({ pathname: '/select-position', params: { target: id } })
 
   // start or continue the workout session
   const handleStart = () => {
     if (!hasExercises) return
     setActiveWorkout(id)
-    router.replace({ pathname: '/(tabs)/workouts/[id]/start', params: { id } })
+    router.replace({ pathname: '/workouts/[id]/start', params: { id } })
   }
 
   // delete an exercise, clearing session if active
