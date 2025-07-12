@@ -215,35 +215,40 @@ export default function StartWorkoutScreen() {
   }
 
   // Complete workout - Updated to handle user-specific completion
-  const completeWorkout = async () => {
-    try {
-      // Save the session first
-      const sessionId = await saveSessionToFirestore(maxRecord)
-      
-      // Mark workout as completed in the context
-      await completeWorkoutSession(id)
-      
-      // Navigate to completion screen with the session ID
-       router.replace({
+  // StartWorkoutScreen.tsx  (inside completeWorkout)
+const completeWorkout = async () => {
+  try {
+    const sessionId = await saveSessionToFirestore(maxRecord);
+    const exerciseSnapshot = JSON.stringify(
+    workout.exercises.map(({ id, name, sets }) => ({ id, name, sets }))
+  );
+
+    /* ---------- 1. navigate away immediately ---------- */
+    router.replace({
       pathname: '/workouts/[id]/complete',
-      params: { 
-        id, 
+      params: {
+        id,
         sessionId: sessionId || 'no-improvement',
-        records: JSON.stringify(maxRecord) 
+        records: JSON.stringify(maxRecord),
+        exercises: exerciseSnapshot, 
       },
     });
-    
-    // Force clear any remaining state
+
+    /* ---------- 2. reset Quick Workout in the background ---------- */
+    // don’t await; if it fails we just log the error
+    completeWorkoutSession(id).catch(console.error);
+
+    /* optional local cleanup */
     setExIdx(0);
     setSetIdx(0);
     setPhase('ready');
     setMaxRecord({});
-  } catch (error) {
-    console.error('Error completing workout:', error);
-    // Show error to user
+  } catch (e) {
+    console.error('Error completing workout:', e);
     alert('Failed to complete workout. Please try again.');
   }
 };
+
 
   // Prev/Next
   const goPrev = () => {

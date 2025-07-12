@@ -1,5 +1,4 @@
 // app/(tabs)/workouts/[id]/complete.tsx
-
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import { COLORS } from '@/constants/Colors';
@@ -7,19 +6,42 @@ import { useWorkout } from '@/context/WorkoutContext';
 import { Ionicons } from '@expo/vector-icons';
 
 type RecordsMap = Record<string, number>;
+type ExSnap = { id: string; name: string; sets: number };
 
 export default function WorkoutCompleteScreen() {
-  const { id, records } = useLocalSearchParams<{ id: string; records?: string }>();
+  const { id, records, exercises } = useLocalSearchParams<{
+    id: string;
+    records?: string;
+    exercises?: string;     // ← NEW
+  }>();
   const router = useRouter();
   const { workouts } = useWorkout();
-  const workout = workouts.find((w) => w.id === id);
+  const workout = workouts.find(w => w.id === id);
 
-  // parse the passed records JSON (or empty map)
-  const parsedRecords: RecordsMap = records
-    ? JSON.parse(records)
-    : {};
+  const parsedRecords: RecordsMap = records ? JSON.parse(records) : {};
+  const snapshot: ExSnap[] | null = exercises ? JSON.parse(exercises) : null;
 
-  if (!workout) {
+  /* ---------- metrics ---------- */
+  const exerciseCount = snapshot
+    ? snapshot.length
+    : workout?.exercises.length ?? 0;
+
+  const totalSets = snapshot
+    ? snapshot.reduce((s, ex) => s + ex.sets, 0)
+    : workout
+        ? workout.exercises.reduce((s, ex) => s + (ex.sets || 1), 0)
+        : 0;
+
+  /* ---------- record list ---------- */
+  const recordList = (snapshot ?? workout?.exercises ?? [])
+    .filter(ex => parsedRecords[ex.id] != null)
+    .map(ex => ({
+      id: ex.id,
+      name: ex.name,
+      best: parsedRecords[ex.id],
+    }));
+
+  if (!workout && !snapshot) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Workout Not Found</Text>
@@ -27,33 +49,15 @@ export default function WorkoutCompleteScreen() {
     );
   }
 
-  const totalSets = workout.exercises.reduce(
-    (sum, ex) => sum + (ex.sets || 1),
-    0
-  );
-
-  // build a list of { id, name, best } for FlatList
-  const recordList = workout.exercises
-    .filter((ex) => parsedRecords[ex.id] != null)
-    .map((ex) => ({
-      id: ex.id,
-      name: ex.name,
-      best: parsedRecords[ex.id],
-    }));
-
+  /* ---------- UI ---------- */
   return (
     <View style={styles.container}>
-      <Ionicons
-        name="trophy"
-        size={64}
-        color={COLORS.primary}
-        style={styles.icon}
-      />
+      <Ionicons name="trophy" size={64} color={COLORS.primary} style={styles.icon} />
       <Text style={styles.title}>Workout Complete</Text>
-      <Text style={styles.subtitle}>{workout.name}</Text>
+      <Text style={styles.subtitle}>{workout?.name ?? 'Quick Workout'}</Text>
 
       <View style={styles.metrics}>
-        <Text style={styles.metric}>{workout.exercises.length} Exercises</Text>
+        <Text style={styles.metric}>{exerciseCount} Exercises</Text>
         <Text style={styles.metric}>{totalSets} Sets</Text>
       </View>
 
@@ -73,10 +77,7 @@ export default function WorkoutCompleteScreen() {
         </View>
       )}
 
-      <Pressable
-        style={styles.doneBtn}
-        onPress={() => router.replace('/')}
-      >
+      <Pressable style={styles.doneBtn} onPress={() => router.replace('/')}>
         <Text style={styles.doneText}>Return Home</Text>
       </Pressable>
     </View>

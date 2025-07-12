@@ -267,16 +267,30 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   };
 
   const completeWorkoutSession = async (workoutId: string) => {
-    try {
-      setActiveWorkoutId(null);
-      await updateDoc(doc(db, 'workouts', workoutId), {
-        lastCompleted: new Date()
-      });
-    } catch (error) {
-      console.error('Error completing workout session:', error);
-      throw error;
+       try {
+    const workout = workouts.find(w => w.id === workoutId);
+    if (!workout) throw new Error('Workout not found');
+
+    // Build a type-safe update payload
+    const updates: {
+      lastCompleted: Date;
+      exercises?: Exercise[];   // optional – only set for Quick
+    } = {
+      lastCompleted: new Date(),
+    };
+
+    if (workout.tag === 'Quick') {
+      updates.exercises = [];   // clear the list for Quick workouts
     }
-  };
+
+    await updateDoc(doc(db, 'workouts', workoutId), updates);
+
+    setActiveWorkoutId(null);   // clear any local “active” flag
+  } catch (err) {
+    console.error('Error completing workout session:', err);
+    throw err;
+  }
+};
 
   return (
     <WorkoutContext.Provider value={{

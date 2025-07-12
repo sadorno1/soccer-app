@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
 import { useColorScheme } from 'react-native';
 import { useWorkout } from '@/context/WorkoutContext';
+import Theme, { SIZES, scale, verticalScale, GlobalStyles } from '@/theme';
+
 import 'expo-router/entry';
 
 export default function HomeScreen() {
@@ -14,38 +16,38 @@ export default function HomeScreen() {
   const upcomingWorkout = workouts.find((w) => !w.permanent);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Home</Text>
+    <View style={GlobalStyles.container}>
+      <Text style={GlobalStyles.header}>Home</Text>
 
       <Pressable
-        style={styles.startButton}
+        style={GlobalStyles.startButton}
         onPress={() => router.push('/my-workouts')}
       >
-        <Text style={styles.buttonText}>START WORKOUT</Text>
+        <Text style={GlobalStyles.buttonText}>START WORKOUT</Text>
       </Pressable>
 
-      <Text style={styles.sectionTitle}>Upcoming Workout</Text>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>
+      <Text style={GlobalStyles.sectionTitle}>Upcoming Workout</Text>
+      <View style={GlobalStyles.card}>
+        <Text style={GlobalStyles.cardTitle}>
           {upcomingWorkout ? upcomingWorkout.name : 'No upcoming workout'}
         </Text>
-        <Text style={styles.cardSubtitle}>Today 9:00 AM</Text>
+        <Text style={GlobalStyles.cardSubtitle}>Today 9:00 AM</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Quick Stats</Text>
-      <View style={styles.card}>
-        <Text style={styles.statLabel}>PERSONAL RECORD</Text>
-        <Text style={styles.statValue}>2 touch</Text>
+      <Text style={GlobalStyles.sectionTitle}>Quick Stats</Text>
+      <View style={GlobalStyles.card}>
+        <Text style={GlobalStyles.statLabel}>PERSONAL RECORD</Text>
+        <Text style={GlobalStyles.statValue}>2 touch</Text>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statBlock}>
-          <Text style={styles.statLabel}>PERSONAL RECORD</Text>
-          <Text style={styles.statValue}>2:30</Text>
+      <View style={GlobalStyles.statsRow}>
+        <View style={GlobalStyles.statBlock}>
+          <Text style={GlobalStyles.statLabel}>PERSONAL RECORD</Text>
+          <Text style={GlobalStyles.statValue}>2:30</Text>
         </View>
-        <View style={styles.statBlock}>
-          <Text style={styles.statLabel}>WORKOUTS THIS WEEK</Text>
-          <Text style={styles.statValue}>3</Text>
+        <View style={GlobalStyles.statBlock}>
+          <Text style={GlobalStyles.statLabel}>WORKOUTS THIS WEEK</Text>
+          <Text style={GlobalStyles.statValue}>3</Text>
         </View>
         
       </View>
