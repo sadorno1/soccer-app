@@ -7,6 +7,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { WorkoutProvider } from '@/context/WorkoutContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useFonts } from 'expo-font';
 
@@ -53,6 +54,7 @@ export default function RootLayout() {
   /* ---------- UI ---------- */
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+        <AuthProvider>
       <WorkoutProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
@@ -67,6 +69,8 @@ export default function RootLayout() {
           <StatusBar style="auto" />
         </ThemeProvider>
       </WorkoutProvider>
+      </AuthProvider>
+
     </GestureHandlerRootView>
   );
 }

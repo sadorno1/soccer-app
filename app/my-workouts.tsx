@@ -30,7 +30,6 @@ export default function MyWorkoutsScreen() {
     if (!name) return;
 
     addWorkout({
-      id: Date.now().toString(),
       name,
       exercises: [],
       tag: name,  // or blank string if you prefer

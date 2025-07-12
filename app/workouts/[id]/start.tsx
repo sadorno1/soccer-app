@@ -17,7 +17,16 @@ import {
 
 // Firebase imports
 import { db } from '@/lib/firebase'
-import { addDoc, collection } from 'firebase/firestore'
+import { 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  addDoc,
+  collection,
+  getDocs 
+} from 'firebase/firestore';
+import { useAuth } from '@/context/AuthContext' // Import AuthContext
 
 type Phase = 'ready' | 'active' | 'rest'
 type Foot = 'default' | 'left' | 'right'
@@ -27,6 +36,7 @@ export default function StartWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { workouts, activeWorkoutId, completeWorkoutSession } = useWorkout()
+  const { user } = useAuth() // Get current user
 
   // Redirect if workout not found
   const workout = workouts.find(w => w.id === id)
@@ -128,20 +138,68 @@ export default function StartWorkoutScreen() {
   const getPhaseColor = () =>
     phase === 'ready' ? COLORS.warning : phase === 'active' ? COLORS.success : COLORS.info
 
-  // Firestore write
-  const saveSessionToFirestore = async (records: Record<string, number>) => {
-    console.log('Saving session with records:', records)
-    try {
-      const docRef = await addDoc(collection(db, 'workoutSessions'), {
-        workoutId: id,
-        timestamp: new Date(),
-        records,
-      })
-      console.log('Saved session ID:', docRef.id)
-    } catch (e) {
-      console.error('Error saving session:', e)
-    }
+  // Firestore write - Updated to include user ID
+  const saveSessionToFirestore = async (currentRecords: Record<string, number>) => {
+  if (!user) {
+    console.error('Cannot save session - no authenticated user');
+    return;
   }
+
+  try {
+    // 1. Get previous best records
+    const previousRecordsQuery = query(
+      collection(db, 'workoutSessions'),
+      where('userId', '==', user.uid),
+      where('workoutId', '==', id),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    const snapshot = await getDocs(previousRecordsQuery);
+    let previousBestRecords: Record<string, number> = {};
+    
+    if (!snapshot.empty) {
+      const lastSession = snapshot.docs[0].data();
+      previousBestRecords = lastSession.records || {};
+    }
+
+    // 2. Filter current records - only keep improvements or new exercises
+    const recordsToSave: Record<string, number> = {};
+    
+    Object.entries(currentRecords).forEach(([exerciseId, reps]) => {
+      const previousBest = previousBestRecords[exerciseId] || 0;
+      if (reps > previousBest) {
+        recordsToSave[exerciseId] = reps;
+      }
+    });
+
+    // 3. Only save if there are improvements
+    if (Object.keys(recordsToSave).length > 0) {
+      const sessionData = {
+        workoutId: id,
+        workoutName: workout.name,
+        userId: user.uid,
+        timestamp: new Date(),
+        records: recordsToSave,
+        exercises: workout.exercises.map(ex => ({
+          id: ex.id,
+          name: ex.name,
+          maxReps: recordsToSave[ex.id] || 0
+        }))
+      };
+
+      const docRef = await addDoc(collection(db, 'workoutSessions'), sessionData);
+      console.log('Saved improved records:', recordsToSave);
+      return docRef.id;
+    } else {
+      console.log('No improved records to save');
+      return null;
+    }
+  } catch (e) {
+    console.error('Error saving session:', e);
+    throw e;
+  }
+};
 
   // Handle Done
   const handleDone = () => {
@@ -156,15 +214,36 @@ export default function StartWorkoutScreen() {
     setPhase('rest')
   }
 
-  // Complete workout
+  // Complete workout - Updated to handle user-specific completion
   const completeWorkout = async () => {
-    completeWorkoutSession(id)
-    await saveSessionToFirestore(maxRecord)
-    router.replace({
+    try {
+      // Save the session first
+      const sessionId = await saveSessionToFirestore(maxRecord)
+      
+      // Mark workout as completed in the context
+      await completeWorkoutSession(id)
+      
+      // Navigate to completion screen with the session ID
+       router.replace({
       pathname: '/workouts/[id]/complete',
-      params: { id, records: JSON.stringify(maxRecord) },
-    })
+      params: { 
+        id, 
+        sessionId: sessionId || 'no-improvement',
+        records: JSON.stringify(maxRecord) 
+      },
+    });
+    
+    // Force clear any remaining state
+    setExIdx(0);
+    setSetIdx(0);
+    setPhase('ready');
+    setMaxRecord({});
+  } catch (error) {
+    console.error('Error completing workout:', error);
+    // Show error to user
+    alert('Failed to complete workout. Please try again.');
   }
+};
 
   // Prev/Next
   const goPrev = () => {
