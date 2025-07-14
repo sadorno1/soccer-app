@@ -5,6 +5,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Swipeable } from 'react-native-gesture-handler'
+import Theme, { SIZES, scale, verticalScale, GlobalStyles } from '@/theme';
+import { StackActions } from '@react-navigation/native';
+
 
 
 const SUBCATEGORY_COLORS: Record<string, string> = {
@@ -22,6 +25,7 @@ const SUBCATEGORY_COLORS: Record<string, string> = {
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const [modalVisible, setModalVisible] = useState(false);
   const {
     workouts,
     setActiveWorkout,
@@ -48,7 +52,7 @@ export default function WorkoutDetailScreen() {
 
   // navigate to add-exercise flow
   const handleAdd = () =>
-    router.push({ pathname: '/select-position', params: { target: id } })
+    router.replace({ pathname: '/select-position', params: { target: id } })
 
   // start or continue the workout session
   const handleStart = () => {
@@ -74,42 +78,68 @@ export default function WorkoutDetailScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.backText}>{'< Back'}</Text>
-        </Pressable>
-        <Text style={styles.title}>{workout.name}</Text>
-        <View style={{ width: 60 }} />
+    <View style={GlobalStyles.container}>
+      <View style={GlobalStyles.headerRow}>
+        <Pressable onPress={() => router.back()}
+                            style={({ pressed }) => [
+                    GlobalStyles.add_back_Button,
+                    { 
+                      transform: [{ scale: pressed ? 0.95 : 1 }],
+                      shadowOpacity: pressed ? 0.3 : 0.2,
+                    }
+                  ]}
+                >
+                  <Text style={GlobalStyles.add_backText}>{'←'}</Text>
+                </Pressable>
+                
+        <Text style={GlobalStyles.title}>{workout.name}</Text>
+    <Pressable 
+  onPress={() => {
+    setModalVisible(true);
+    handleAdd();
+  }}
+  disabled={isActive}
+  style={({ pressed }) => [
+    GlobalStyles.add_back_Button,
+    { 
+      opacity: isActive ? 0.5 : 1, // Only change opacity when disabled
+      transform: isActive ? [] : [{ scale: pressed ? 0.95 : 1 }], // No transform when disabled
+      // Remove shadow effects when disabled
+      elevation: isActive ? 0 : 2,
+      shadowOpacity: isActive ? 0 : 0.2,
+    }
+  ]}
+>
+  <Text style={[
+    GlobalStyles.add_backText,
+    { opacity: isActive ? 0.5 : 1 } // Ensure text also respects disabled state
+  ]}>+</Text>
+</Pressable>
       </View>
 
       {isActive && (
-        <View style={styles.banner}>
-          <Text style={styles.bannerText}>WORKOUT IN PROGRESS</Text>
+        <View style={GlobalStyles.banner}>
+          <Text style={GlobalStyles.bannerText}>WORKOUT IN PROGRESS</Text>
         </View>
       )}
 
       <Pressable
         style={[
-          styles.startBtn,
-          hasExercises ? styles.startEnabled : styles.startDisabled,
-          isActive && styles.startActive,
+          GlobalStyles.startBtn,
+          hasExercises ? GlobalStyles.startEnabled : GlobalStyles.startDisabled,
+          isActive && GlobalStyles.startActive,
         ]}
         onPress={handleStart}
         disabled={!hasExercises || isActive}
       >
-        <Text style={styles.startText}>
+        <Text style={GlobalStyles.startText}>
           {isActive ? 'Continue Workout' : 'Start Workout'}
         </Text>
       </Pressable>
 
-      <View style={styles.row}>
-        <Text style={styles.section}>Exercises</Text>
-        <Pressable onPress={handleAdd} disabled={isActive}>
-          <Text style={[styles.addLink, isActive && styles.addDisabled]}>
-            Add
-          </Text>
-        </Pressable>
+      <View style={GlobalStyles.row}>
+        <Text style={GlobalStyles.section}>Exercises</Text>
+      
       </View>
 
       {hasExercises ? (
@@ -122,10 +152,10 @@ export default function WorkoutDetailScreen() {
               overshootRight={false}
               renderRightActions={() => (
                 <Pressable
-                  style={styles.deleteBox}
+                  style={GlobalStyles.deleteBox}
                   onPress={() => handleDelete(item.id)}
                 >
-                  <Text style={styles.deleteText}>Delete</Text>
+                  <Text style={GlobalStyles.deleteText}>Delete</Text>
                 </Pressable>
               )}
             >
@@ -142,17 +172,17 @@ export default function WorkoutDetailScreen() {
           contentContainerStyle={{ paddingBottom: 40 }}
         />
       ) : (
-        <View style={styles.empty}>
-          <Text style={styles.noText}>No exercises</Text>
-          <Text style={styles.subText}>
+        <View style={GlobalStyles.empty}>
+          <Text style={GlobalStyles.noText}>No exercises</Text>
+          <Text style={GlobalStyles.subText}>
             Add exercises to your workout to start.
           </Text>
           <Pressable
-            style={styles.cta}
+            style={GlobalStyles.cta}
             onPress={handleAdd}
             disabled={isActive}
           >
-            <Text style={styles.ctaText}>Add Exercise</Text>
+            <Text style={GlobalStyles.ctaText}>Add Exercise</Text>
           </Pressable>
         </View>
       )}
@@ -160,63 +190,3 @@ export default function WorkoutDetailScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 20,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  backText: { fontSize: 16, color: COLORS.primary, fontWeight: '600' },
-  title: { fontSize: 24, fontWeight: '700', color: COLORS.text },
-  banner: {
-    backgroundColor: COLORS.warning,
-    padding: 8,
-    borderRadius: 6,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  bannerText: { color: 'white', fontWeight: '700', fontSize: 12 },
-  startBtn: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  startEnabled: { backgroundColor: COLORS.primary },
-  startDisabled: { backgroundColor: COLORS.surface, opacity: 0.6 },
-  startActive: { backgroundColor: COLORS.warning },
-  startText: { fontWeight: '600', fontSize: 16, color: COLORS.background },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  section: { fontSize: 18, fontWeight: '600', color: COLORS.text },
-  addLink: { color: COLORS.primary, fontWeight: '600', fontSize: 14 },
-  addDisabled: { opacity: 0.5 },
-  deleteBox: {
-    backgroundColor: '#ef4444',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 90,
-    borderRadius: 12,
-  },
-  deleteText: { color: 'white', fontWeight: '700' },
-  empty: { alignItems: 'center', marginTop: 40 },
-  noText: { fontSize: 18, fontWeight: '600', color: COLORS.text },
-  subText: { fontSize: 14, color: COLORS.textMuted, textAlign: 'center' },
-  cta: {
-    backgroundColor: COLORS.primary,
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 12,
-  },
-  ctaText: { color: COLORS.background, fontWeight: '600' },
-})

@@ -1,6 +1,8 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '@/constants/Colors';
+import Theme, { SIZES, scale, verticalScale, GlobalStyles } from '@/theme';
+
 
 const positions = [
   { key: 'attacking-players',   label: 'Attacking\nPlayers' },
@@ -14,100 +16,49 @@ export default function SelectPositionScreen() {
   const { target } = useLocalSearchParams<{ target?: string }>();
 
   const selectPosition = (pos: string) => {
-    router.push({
+    router.replace({
       pathname: '/exercises/[position]',
       params: { position: pos, workoutId: target },
     });
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Pressable onPress={() => router.back()}>
-          <Text style={styles.backText}>{'< Back'}</Text>
-        </Pressable>
-        <Text style={styles.header}>Select Position</Text>
-        <View style={{ width: 60 }} />
+    <View style={GlobalStyles.container}>
+      <View style={GlobalStyles.headerRow}>
+         <Pressable onPress={() => router.back()}
+                                   style={({ pressed }) => [
+                           GlobalStyles.add_back_Button,
+                           { 
+                             transform: [{ scale: pressed ? 0.95 : 1 }],
+                             shadowOpacity: pressed ? 0.3 : 0.2,
+                           }
+                         ]}
+                       >
+                         <Text style={GlobalStyles.add_backText}>{'←'}</Text>
+                       </Pressable>
+      <Text style={GlobalStyles.title}>Select Position</Text>
+        
       </View>
 
-      <View style={styles.fieldGrid}>
+      <View style={GlobalStyles.fieldGrid}>
         {positions.map((p) => (
           <Pressable
             key={p.key}
-            style={styles.circle}
+            style={GlobalStyles.circle}
             onPress={() => selectPosition(p.key)}
           >
-            <Text style={styles.circleText}>{p.label}</Text>
+            <Text style={GlobalStyles.circleText}>{p.label}</Text>
           </Pressable>
         ))}
       </View>
 
       <Pressable
-        style={styles.allBtn}
+        style={GlobalStyles.allBtn}
         onPress={() => selectPosition('all-positions')}
       >
-        <Text style={styles.allText}>All Positions</Text>
+        <Text style={GlobalStyles.allText}>All Positions</Text>
       </Pressable>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    padding: 24,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    marginTop: 20,
-  },
-  backText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  header: {
-    fontSize: 24,
-    color: COLORS.text,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  fieldGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    gap: 12,
-    marginTop: 24,
-  },
-  circle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  circleText: {
-    color: COLORS.text,
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  allBtn: {
-    marginTop: 32,
-    backgroundColor: COLORS.surface,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  allText: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

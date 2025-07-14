@@ -1,9 +1,10 @@
 // app/(tabs)/records.tsx
 import { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator } from 'react-native';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
+import Theme, { GlobalStyles } from '@/theme';
 
 interface ExerciseRecord {
   id: string;
@@ -18,6 +19,7 @@ export default function Records() {
   const [latestRecords, setLatestRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
+  /* ---------------- Firestore listener ---------------- */
   useEffect(() => {
     if (!user) return;
 
@@ -28,7 +30,7 @@ export default function Records() {
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const recordsMap: Record<string, ExerciseRecord> = {};
-      
+
       snapshot.forEach((doc) => {
         const data = doc.data();
         if (data.records) {
@@ -41,11 +43,13 @@ export default function Records() {
                 name: exercise.name,
                 maxReps: reps as number,
                 date: recordDate,
-                workoutName: data.workoutName || 'Unknown Workout'
+                workoutName: data.workoutName || 'Unknown Workout',
               };
 
-              // Only keep the most recent record for each exercise
-              if (!recordsMap[exerciseId] || recordDate > recordsMap[exerciseId].date) {
+              if (
+                !recordsMap[exerciseId] ||
+                recordDate > recordsMap[exerciseId].date
+              ) {
                 recordsMap[exerciseId] = newRecord;
               }
             }
@@ -53,21 +57,21 @@ export default function Records() {
         }
       });
 
-      // Convert to array and sort by exercise name
-      const sortedRecords = Object.values(recordsMap).sort((a, b) => 
+      const sortedRecords = Object.values(recordsMap).sort((a, b) =>
         a.name.localeCompare(b.name)
       );
-      
+
       setLatestRecords(sortedRecords);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, [user]);
 
+  /* ---------------- UI states ---------------- */
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[GlobalStyles.container, { justifyContent: 'center' }]}>
         <ActivityIndicator size="large" />
       </View>
     );
@@ -75,68 +79,49 @@ export default function Records() {
 
   if (latestRecords.length === 0) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.noRecordsText}>No exercise records yet</Text>
+      <View style={[GlobalStyles.container, { justifyContent: 'center' }]}>
+        <Text style={GlobalStyles.noText}>No exercise records yet</Text>
       </View>
     );
   }
 
+  /* ---------------- Normal render ---------------- */
   return (
-    <View style={styles.container}>
+    <View style={GlobalStyles.container}>
+          <View style={GlobalStyles.headerRow}>
+              <Text style={GlobalStyles.header}>
+              My Records
+            </Text>
+            </View>
       <FlatList
         data={latestRecords}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 40 }}
         renderItem={({ item }) => (
-          <View style={styles.exerciseContainer}>
-            <Text style={styles.exerciseName}>{item.name}</Text>
-            <View style={styles.recordItem}>
-              <Text style={styles.recordReps}>{item.maxReps} reps (Latest)</Text>
-              <Text style={styles.recordWorkout}>{item.workoutName}</Text>
-              <Text style={styles.recordDate}>
-                {item.date.toLocaleDateString()} at {item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
+          <View
+            style={[
+              GlobalStyles.card,
+              { flexDirection: 'column', alignItems: 'flex-start' },
+            ]}
+          >
+            <Text style={GlobalStyles.cardTitle}>{item.name}</Text>
+
+            <Text style={[GlobalStyles.paragraph, { fontWeight: '600' }]}>
+              {item.maxReps} reps (Latest)
+            </Text>
+
+            <Text style={GlobalStyles.cardSubtitle}>{item.workoutName}</Text>
+
+            <Text style={GlobalStyles.cardSubtitle}>
+              {item.date.toLocaleDateString()} ·{' '}
+              {item.date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </Text>
           </View>
         )}
       />
     </View>
   );
 }
-
-// ... (keep your existing styles)
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  exerciseContainer: {
-    marginBottom: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-  },
-  exerciseName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  recordItem: {
-    marginTop: 8,
-  },
-  recordReps: {
-    fontSize: 16,
-  },
-  recordWorkout: {
-    fontSize: 14,
-    color: '#666',
-  },
-  recordDate: {
-    fontSize: 12,
-    color: '#999',
-  },
-  noRecordsText: {
-    textAlign: 'center',
-    color: '#999',
-  },
-});

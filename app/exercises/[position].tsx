@@ -2,6 +2,7 @@ import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
 import { sampleExercises } from '@/data/sampleExercises';
+import { GlobalStyles } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 
@@ -19,6 +20,11 @@ const SUBCATEGORY_COLORS: Record<string, string> = {
 };
 
 const normalize = (str: string) => str.toLowerCase().replace(/\s+/g, '-');
+const titleCase = (slug: string) =>
+  slug
+    .split('-')                            
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 
 export default function PositionExerciseScreen() {
   const { position, workoutId } = useLocalSearchParams<{
@@ -43,21 +49,27 @@ export default function PositionExerciseScreen() {
 
   /* ---------- when user taps an exercise ---------- */
 const handleAdd = (exercise: typeof sampleExercises[number]) => {
-  if (workoutId) addExerciseToWorkout(workoutId, exercise);
+  if (workoutId) {
+    addExerciseToWorkout(workoutId, exercise);
 
-  // Jump straight back to the select-position screen instead of Home
-  router.replace({
-    pathname: '/workouts/[id]',
-    params: { id: workoutId },   // pass the workout ID back along
-  });
+    router.replace({
+      pathname: '/workouts/[id]',
+      params: { id: workoutId },   // supply the id
+    });
+  } else {
+    router.back();
+  }
 };
 
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>
-        {position.replaceAll('-', ' ').toUpperCase()}
+    <View style={GlobalStyles.container}>
+      <View style={GlobalStyles.headerRow}>
+        <Text style={GlobalStyles.title}>
+        {titleCase(position)}
       </Text>
+        </View>
+
 
       <FlatList
         data={sorted}
@@ -77,21 +89,3 @@ const handleAdd = (exercise: typeof sampleExercises[number]) => {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: 16,
-    textAlign: 'center',
-    marginTop: 20,
-
-  },
-});

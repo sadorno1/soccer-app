@@ -1,5 +1,6 @@
 // theme.ts – responsive sizing + global styles
-// Uses existing palette in constants/Colors.  Import *once* and share everywhere.
+// Single source of truth for responsive helpers & shared styles.
+// Colors come from constants/Colors so you only maintain one palette.
 
 import { Dimensions, StyleSheet } from 'react-native';
 import { COLORS } from '@/constants/Colors';
@@ -8,7 +9,7 @@ import { COLORS } from '@/constants/Colors';
 /* Responsive helpers                                                         */
 /* -------------------------------------------------------------------------- */
 const { width, height } = Dimensions.get('window');
-const guidelineBaseWidth = 375;   // change if your Figma frame differs
+const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 
 export const scale = (size: number) => (width / guidelineBaseWidth) * size;
@@ -20,18 +21,21 @@ export const moderateScale = (size: number, factor = 0.5) =>
 /* Design tokens                                                              */
 /* -------------------------------------------------------------------------- */
 export const SIZES = {
+  // Spacing
   xs: scale(4),
   sm: scale(8),
   md: scale(16),
   lg: scale(24),
   xl: scale(32),
 
+  // Typography
   h1: moderateScale(32),
   h2: moderateScale(24),
   h3: moderateScale(20),
   body: moderateScale(14),
   caption: moderateScale(12),
 
+  // Misc
   radius: scale(12),
 } as const;
 
@@ -39,13 +43,13 @@ export const SIZES = {
 /* Global style sheet                                                         */
 /* -------------------------------------------------------------------------- */
 export const GlobalStyles = StyleSheet.create({
-  /* Layout */
+  /* Layout helpers */
   screen: { flex: 1, backgroundColor: COLORS.background },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
     paddingHorizontal: SIZES.lg,
-    paddingTop: verticalScale(70),
+    paddingTop: verticalScale(20),
   },
 
   /* Typography */
@@ -53,6 +57,7 @@ export const GlobalStyles = StyleSheet.create({
     fontSize: SIZES.h1,
     fontWeight: '700',
     color: COLORS.text,
+    paddingTop: verticalScale(40),
     marginBottom: verticalScale(16),
     textAlign: 'center',
   },
@@ -68,7 +73,88 @@ export const GlobalStyles = StyleSheet.create({
     lineHeight: verticalScale(20),
   },
 
-  /* Buttons */
+  /* Header row / nav bar */
+  headerRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',   // ⬅ keeps title in the middle
+  position: 'relative',       // ⬅ lets us absolutely-place the back button
+  marginBottom: verticalScale(18),
+},
+  backText: {
+    fontSize: moderateScale(16),
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  title: {
+    fontSize: moderateScale(28),
+    fontWeight: '700',
+    textAlign: 'center',
+    color: COLORS.text,
+    flex: 1, 
+  },
+ add_back_Button: {
+    backgroundColor: COLORS.primary,
+  borderRadius: 50,
+  width: moderateScale(56),    // ⬅ scales with screen size
+  height: moderateScale(56),
+  justifyContent: 'center',
+  alignItems: 'center',
+  elevation: 6,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+},
+add_backText: {
+  color: '#fff',
+  fontSize: 32, // Larger plus sign
+  fontWeight: '300', // Thinner weight looks more elegant
+  lineHeight: 36, // Perfect vertical alignment
+  includeFontPadding: false, // Removes extra padding
+  textAlignVertical: 'center',
+},
+
+  /* Banners / alerts */
+  banner: {
+    backgroundColor: COLORS.warning,
+    padding: SIZES.sm,
+    borderRadius: SIZES.xs + SIZES.xs, // 6
+    marginBottom: SIZES.sm,
+    alignItems: 'center',
+  },
+  bannerText: {
+    color: COLORS.text,
+    fontWeight: '700',
+    fontSize: SIZES.caption,
+  },
+
+  /* Generic rows */
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SIZES.sm,
+  },
+
+  /* Headings inside list sections (alias) */
+  section: {
+    fontSize: SIZES.h3,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+
+  /* Links / CTA text */
+  addLink: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: SIZES.body,
+  },
+  addDisabled: {
+    opacity: 0.5,
+  },
+
+  /* Buttons (generic + start) for                           */
   startButton: {
     backgroundColor: '#14532d',
     borderRadius: SIZES.radius,
@@ -82,13 +168,33 @@ export const GlobalStyles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  /* Cards */
+  /* Start buttons with states */
+  startBtn: {
+    padding: SIZES.md,
+    borderRadius: SIZES.radius,
+    alignItems: 'center',
+    marginBottom: SIZES.lg,
+  },
+  startEnabled: { backgroundColor: COLORS.primary },
+  startDisabled: { backgroundColor: COLORS.surface, opacity: 0.6 },
+  startActive: { backgroundColor: COLORS.warning },
+  startText: {
+    fontWeight: '600',
+    fontSize: moderateScale(16),
+    color: COLORS.background,
+  },
+
+  /* Cards & list items */
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.radius,
     padding: SIZES.md,
     marginBottom: SIZES.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
+  cardLeft: { flex: 1 },
   cardTitle: {
     color: COLORS.text,
     fontSize: moderateScale(16),
@@ -100,7 +206,117 @@ export const GlobalStyles = StyleSheet.create({
     marginTop: verticalScale(4),
   },
 
-  /* Stats */
+  /* Tags */
+  tagCircle: {
+    backgroundColor: COLORS.accent,
+    borderRadius: 999,
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(6),
+  },
+  tagText: {
+    color: '#000',
+    fontWeight: '600',
+    fontSize: moderateScale(12),
+  },
+
+  /* Delete swipe box */
+  deleteBox: {
+    backgroundColor: COLORS.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: scale(90),
+    borderRadius: SIZES.radius,
+  },
+  deleteText: {
+    color: COLORS.text,
+    fontWeight: '700',
+  },
+
+  /* Empty states */
+  empty: { alignItems: 'center', marginTop: verticalScale(40) },
+  noText: {
+    fontSize: SIZES.h3,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  subText: {
+    fontSize: SIZES.body,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+  },
+
+  /* Call‑to‑action button */
+  cta: {
+    backgroundColor: COLORS.primary,
+    padding: SIZES.sm + SIZES.xs, // 12
+    borderRadius: SIZES.radius - scale(2),
+    marginTop: SIZES.sm + SIZES.xs,
+    alignItems: 'center',
+  },
+  ctaText: {
+    color: COLORS.background,
+    fontWeight: '600',
+    fontSize: SIZES.body,
+  },
+
+  /* Modal */
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.radius,
+    padding: SIZES.md + SIZES.sm,
+    width: '85%',
+  },
+  modalTitle: {
+    fontSize: moderateScale(20),
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: verticalScale(12),
+  },
+  input: {
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.xs + SIZES.xs,
+    padding: SIZES.sm + SIZES.xs,
+    color: COLORS.text,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: SIZES.md + SIZES.xs,
+  },
+  cancelBtn: {
+    flex: 1,
+    marginRight: SIZES.xs,
+    backgroundColor: COLORS.surface,
+    paddingVertical: verticalScale(12),
+    alignItems: 'center',
+    borderRadius: SIZES.radius - scale(2),
+  },
+  addBtn: {
+    flex: 1,
+    marginLeft: SIZES.xs,
+    backgroundColor: COLORS.primary,
+    paddingVertical: verticalScale(12),
+    alignItems: 'center',
+    borderRadius: SIZES.radius - scale(2),
+  },
+  cancelText: {
+    color: COLORS.primary,
+    fontWeight: '600',
+    fontSize: moderateScale(14),
+  },
+  addTextBtn: {
+    color: COLORS.text,
+    fontWeight: '700',
+    fontSize: moderateScale(14),
+  },
+
+  /* Stats row ------------------------------------------------------------- */
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -119,10 +335,52 @@ export const GlobalStyles = StyleSheet.create({
     fontSize: moderateScale(16),
     fontWeight: '600',
   },
+
+  fieldGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-around',
+    gap: 12,
+    marginTop: 24,
+  },
+  circle: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circleText: {
+    color: COLORS.text,
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  allBtn: {
+    marginTop: 32,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  allText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  email: {
+    fontSize: 16,
+    color: '#ebebeb',
+    marginBottom: 24,
+    alignItems: 'center',
+    textAlign: 'center',
+  },
 });
 
 /* -------------------------------------------------------------------------- */
-/* Theme object + exports                                                     */
+/* Export consolidated theme object                                           */
 /* -------------------------------------------------------------------------- */
 const Theme = {
   COLORS,
