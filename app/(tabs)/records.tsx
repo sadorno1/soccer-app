@@ -1,17 +1,16 @@
 // app/(tabs)/records.tsx
-import { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
-import Theme, { GlobalStyles } from '@/theme';
+import { db } from '@/lib/firebase';
+import { GlobalStyles } from '@/theme';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 
 interface ExerciseRecord {
   id: string;
   name: string;
   maxReps: number;
   date: Date;
-  workoutName: string;
 }
 
 export default function Records() {
@@ -23,39 +22,36 @@ export default function Records() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, 'workoutSessions'),
-      where('userId', '==', user.uid)
-    );
+    // Listen to the single global record document for this user
+    const userRecordsRef = doc(db, 'workoutSessions', user.uid);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(userRecordsRef, (docSnapshot: any) => {
       const recordsMap: Record<string, ExerciseRecord> = {};
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+      if (docSnapshot.exists()) {
+        const data = docSnapshot.data();
+        
         if (data.records) {
           Object.entries(data.records).forEach(([exerciseId, reps]) => {
             const exercise = data.exercises?.find((e: any) => e.id === exerciseId);
+            
             if (exercise) {
               const recordDate = data.timestamp?.toDate() || new Date();
-              const newRecord = {
-                id: exerciseId,
-                name: exercise.name,
-                maxReps: reps as number,
-                date: recordDate,
-                workoutName: data.workoutName || 'Unknown Workout',
-              };
-
-              if (
-                !recordsMap[exerciseId] ||
-                recordDate > recordsMap[exerciseId].date
-              ) {
-                recordsMap[exerciseId] = newRecord;
+              const exerciseName = exercise.name;
+              
+              // Group by exercise name, keep the best record
+              if (!recordsMap[exerciseName] || (reps as number) > recordsMap[exerciseName].maxReps) {
+                recordsMap[exerciseName] = {
+                  id: exerciseId,
+                  name: exerciseName,
+                  maxReps: reps as number,
+                  date: recordDate,
+                };
               }
             }
           });
         }
-      });
+      }
 
       const sortedRecords = Object.values(recordsMap).sort((a, b) =>
         a.name.localeCompare(b.name)
@@ -107,10 +103,8 @@ export default function Records() {
             <Text style={GlobalStyles.cardTitle}>{item.name}</Text>
 
             <Text style={[GlobalStyles.paragraph, { fontWeight: '600' }]}>
-              {item.maxReps} reps (Latest)
+              {item.maxReps} reps (Personal Best)
             </Text>
-
-            <Text style={GlobalStyles.cardSubtitle}>{item.workoutName}</Text>
 
             <Text style={GlobalStyles.cardSubtitle}>
               {item.date.toLocaleDateString()} ·{' '}

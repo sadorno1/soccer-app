@@ -1,18 +1,20 @@
 // app/(tabs)/workouts/[id]/complete.tsx
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, StyleSheet, Pressable, FlatList } from 'react-native';
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type RecordsMap = Record<string, number>;
 type ExSnap = { id: string; name: string; sets: number };
 
 export default function WorkoutCompleteScreen() {
-  const { id, records, exercises } = useLocalSearchParams<{
+  const { id, records, exercises, hasImprovements, improvedExercises } = useLocalSearchParams<{
     id: string;
     records?: string;
-    exercises?: string;     // ← NEW
+    exercises?: string;
+    hasImprovements?: string;
+    improvedExercises?: string;
   }>();
   const router = useRouter();
   const { workouts } = useWorkout();
@@ -20,6 +22,8 @@ export default function WorkoutCompleteScreen() {
 
   const parsedRecords: RecordsMap = records ? JSON.parse(records) : {};
   const snapshot: ExSnap[] | null = exercises ? JSON.parse(exercises) : null;
+  const hadImprovements = hasImprovements === 'true';
+  const improvedExerciseIds: string[] = improvedExercises ? JSON.parse(improvedExercises) : [];
 
   /* ---------- metrics ---------- */
   const exerciseCount = snapshot
@@ -32,9 +36,9 @@ export default function WorkoutCompleteScreen() {
         ? workout.exercises.reduce((s, ex) => s + (ex.sets || 1), 0)
         : 0;
 
-  /* ---------- record list ---------- */
+  /* ---------- record list - ONLY show exercises where you got a personal best ---------- */
   const recordList = (snapshot ?? workout?.exercises ?? [])
-    .filter(ex => parsedRecords[ex.id] != null)
+    .filter(ex => improvedExerciseIds.includes(ex.id) && parsedRecords[ex.id] != null)
     .map(ex => ({
       id: ex.id,
       name: ex.name,
@@ -61,9 +65,9 @@ export default function WorkoutCompleteScreen() {
         <Text style={styles.metric}>{totalSets} Sets</Text>
       </View>
 
-      {recordList.length > 0 && (
+      {recordList.length > 0 ? (
         <View style={styles.records}>
-          <Text style={styles.recordsTitle}>Your Personal Bests</Text>
+          <Text style={styles.recordsTitle}>New Personal Bests!</Text>
           <FlatList
             data={recordList}
             keyExtractor={(item) => item.id}
@@ -74,6 +78,16 @@ export default function WorkoutCompleteScreen() {
               </View>
             )}
           />
+        </View>
+      ) : hadImprovements ? (
+        <View style={styles.records}>
+          <Text style={styles.recordsTitle}>Great workout!</Text>
+          <Text style={styles.noRecordsText}>You did great, keep pushing!</Text>
+        </View>
+      ) : (
+        <View style={styles.records}>
+          <Text style={styles.recordsTitle}>Good effort!</Text>
+          <Text style={styles.noRecordsText}>No new personal bests this time, but every workout counts!</Text>
         </View>
       )}
 
@@ -141,6 +155,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  noRecordsText: {
+    fontSize: 14,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   doneBtn: {
     backgroundColor: COLORS.primary,

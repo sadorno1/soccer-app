@@ -18,15 +18,6 @@ import {
 // Firebase imports
 import { useAuth } from '@/context/AuthContext'; // Import AuthContext
 import { db } from '@/lib/firebase'
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  where
-} from 'firebase/firestore'
 
 type Phase = 'ready' | 'active' | 'rest'
 type Foot = 'default' | 'left' | 'right'
@@ -51,6 +42,34 @@ export default function StartWorkoutScreen() {
   const [phase, setPhase] = useState<Phase>('ready')
   const [count, setCount] = useState(10)
   const [maxRecord, setMaxRecord] = useState<Record<string, number>>({})
+  const [previousBestRecords, setPreviousBestRecords] = useState<Record<string, number>>({})
+
+  // Load previous records from the single global document
+  useEffect(() => {
+    const loadPreviousRecords = async () => {
+      if (!user) return;
+      
+      try {
+        const { doc, getDoc } = await import("firebase/firestore");
+        const userRecordsRef = doc(db, 'workoutSessions', user.uid);
+        const docSnapshot = await getDoc(userRecordsRef);
+        
+        if (docSnapshot.exists()) {
+          const records = docSnapshot.data().records || {};
+          setPreviousBestRecords(records);
+          console.log('Loaded previous records (global):', records);
+        } else {
+          console.log('No previous records found');
+          setPreviousBestRecords({});
+        }
+      } catch (error) {
+        console.error('Error loading previous records:', error);
+        setPreviousBestRecords({});
+      }
+    };
+
+    loadPreviousRecords();
+  }, [user]);
 
   // Reset on session change
   useEffect(() => {
@@ -60,6 +79,7 @@ export default function StartWorkoutScreen() {
       setPhase('ready')
       setCount(10)
       setMaxRecord({})
+      setPreviousBestRecords({}) // Clear previous records when switching workouts
     }
   }, [activeWorkoutId, id])
 
@@ -155,68 +175,114 @@ export default function StartWorkoutScreen() {
   const getPhaseColor = () =>
     phase === 'ready' ? COLORS.warning : phase === 'active' ? COLORS.success : COLORS.info
 
-  // Firestore write - Updated to include user ID
+  // Firestore write - Single global record document per user
   const saveSessionToFirestore = async (currentRecords: Record<string, number>) => {
-  if (!user) {
-    console.error('Cannot save session - no authenticated user');
-    return;
-  }
-
-  try {
-    // 1. Get previous best records
-    const previousRecordsQuery = query(
-      collection(db, 'workoutSessions'),
-      where('userId', '==', user.uid),
-      where('workoutId', '==', id),
-      orderBy('timestamp', 'desc'),
-      limit(1)
-    );
-
-    const snapshot = await getDocs(previousRecordsQuery);
-    let previousBestRecords: Record<string, number> = {};
-    
-    if (!snapshot.empty) {
-      const lastSession = snapshot.docs[0].data();
-      previousBestRecords = lastSession.records || {};
+    if (!user) {
+      console.error('Cannot save session - no authenticated user');
+      return;
     }
 
-    // 2. Filter current records - only keep improvements or new exercises
-    const recordsToSave: Record<string, number> = {};
-    
-    Object.entries(currentRecords).forEach(([exerciseId, reps]) => {
-      const previousBest = previousBestRecords[exerciseId] || 0;
-      if (reps > previousBest) {
-        recordsToSave[exerciseId] = reps;
+    try {
+      // Always use the same document ID for this user (user ID as document ID)
+      const userRecordsDocId = user.uid;
+      const { doc, getDoc, updateDoc, setDoc } = await import("firebase/firestore");
+      const userRecordsRef = doc(db, "workoutSessions", userRecordsDocId);
+      
+      // Get existing records
+      const docSnapshot = await getDoc(userRecordsRef);
+      const prev = docSnapshot.exists() ? (docSnapshot.data().records || {}) : {};
+
+      // Compute deltas (only exercises actually done this session)
+      const updatedRecords: Record<string, number> = { ...prev };
+      const improvedExercises: string[] = [];
+
+      for (const [exerciseId, reps] of Object.entries(currentRecords)) {
+        const previousBest = Number(prev[exerciseId] || 0);
+        console.log(`${exerciseId}: current=${reps}, previous=${previousBest}`);
+        if (reps > previousBest) {
+          updatedRecords[exerciseId] = reps;
+          improvedExercises.push(exerciseId);
+          console.log(`🎉 Personal best: ${previousBest} → ${reps}`);
+        }
       }
-    });
 
-    // 3. Only save if there are improvements
-    if (Object.keys(recordsToSave).length > 0) {
-      const sessionData = {
-        workoutId: id,
-        workoutName: workout.name,
-        userId: user.uid,
-        timestamp: new Date(),
-        records: recordsToSave,
-        exercises: workout.exercises.map(ex => ({
-          id: ex.id,
-          name: ex.name,
-          maxReps: recordsToSave[ex.id] || 0
-        }))
+      const hasImprovements = improvedExercises.length > 0;
+
+      // If no improvements, skip DB write entirely
+      if (!hasImprovements) {
+        console.log("No PRs; skipping write.");
+        return {
+          docId: userRecordsDocId,
+          hasImprovements: false,
+          improvedExercises: [],
+        };
+      }
+
+      // If first time and literally nothing recorded, also skip creating a doc
+      if (!docSnapshot.exists() && Object.keys(currentRecords).length === 0) {
+        console.log("No reps this session; skipping document creation.");
+        return { docId: null, hasImprovements: false, improvedExercises: [] };
+      }
+
+      if (docSnapshot.exists()) {
+        // Update existing global record document
+        const patch: any = { timestamp: new Date() };
+
+        // Only write improved keys under records.*
+        for (const exId of improvedExercises) {
+          patch[`records.${exId}`] = updatedRecords[exId];
+        }
+
+        // Always ensure exercises array includes metadata for all improved exercises
+        const existingExercises = docSnapshot.data().exercises || [];
+        const exercisesById = new Map(existingExercises.map((ex: any) => [ex.id, ex]));
+        
+        // Add or update metadata for improved exercises
+        for (const exId of improvedExercises) {
+          const workoutExercise = workout.exercises.find(ex => ex.id === exId);
+          if (workoutExercise) {
+            exercisesById.set(exId, {
+              id: exId,
+              name: workoutExercise.name,
+              maxReps: updatedRecords[exId] || 0
+            });
+          }
+        }
+        
+        patch.exercises = Array.from(exercisesById.values());
+
+        console.log('Updating global record document with improved exercises:', improvedExercises);
+        await updateDoc(userRecordsRef, patch);
+      } else {
+        // Create first global record document for this user
+        const firstRecords: Record<string, number> = {};
+        for (const exId of Object.keys(currentRecords)) {
+          firstRecords[exId] = currentRecords[exId];
+        }
+
+        console.log('Creating first global record document:', firstRecords);
+        await setDoc(userRecordsRef, {
+          userId: user.uid,
+          timestamp: new Date(),
+          records: firstRecords,
+          exercises: workout.exercises.map(ex => ({
+            id: ex.id,
+            name: ex.name,
+            maxReps: firstRecords[ex.id] || 0
+          }))
+        });
+      }
+
+      return {
+        docId: userRecordsDocId,
+        hasImprovements: true,
+        improvedExercises,
       };
-
-      const docRef = await addDoc(collection(db, 'workoutSessions'), sessionData);
-      console.log('Saved improved records:', recordsToSave);
-      return docRef.id;
-    } else {
-      console.log('No improved records to save');
-      return null;
+    } catch (e) {
+      console.error("Error saving session:", e);
+      throw e;
     }
-  } catch (e) {
-    console.error('Error saving session:', e);
-    throw e;
-  }
-};
+  };
 
   // Handle Done
   const handleDone = () => {
@@ -235,7 +301,7 @@ export default function StartWorkoutScreen() {
   // StartWorkoutScreen.tsx  (inside completeWorkout)
 const completeWorkout = async () => {
   try {
-    const sessionId = await saveSessionToFirestore(maxRecord);
+    const sessionResult = await saveSessionToFirestore(maxRecord);
     const exerciseSnapshot = JSON.stringify(
     workout.exercises.map(({ id, name, sets }) => ({ id, name, sets }))
   );
@@ -245,9 +311,11 @@ const completeWorkout = async () => {
       pathname: '/workouts/[id]/complete',
       params: {
         id,
-        sessionId: sessionId || 'no-improvement',
+        sessionId: sessionResult?.docId || 'no-session',
         records: JSON.stringify(maxRecord),
-        exercises: exerciseSnapshot, 
+        exercises: exerciseSnapshot,
+        hasImprovements: sessionResult?.hasImprovements ? 'true' : 'false',
+        improvedExercises: JSON.stringify(sessionResult?.improvedExercises || []) 
       },
     });
 
