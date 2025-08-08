@@ -43,6 +43,7 @@ export default function SettingsScreen() {
       {user ? (
         <>
           <Text style={GlobalStyles.email}>Logged in as: {user.email}</Text>
+          
           <TouchableOpacity style={GlobalStyles.startButton} onPress={handleSignOut}>
             <Text style={GlobalStyles.buttonText}>Sign Out</Text>
           </TouchableOpacity>

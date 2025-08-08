@@ -456,9 +456,16 @@ const completeWorkout = async () => {
           {phase==='active' && exercise.uses_tracking ? (
             <View style={styles.inputContainer}>
               <View style={styles.inputHeader}>
-                <Text style={styles.inputTitle}>Enter Your Reps</Text>
+                <Text style={styles.inputTitle}>
+                  {exercise.max_is_good === false ? 'Enter Total Attempts' : 'Enter Max Reps'}
+                </Text>
                 <Text style={styles.inputSubtitle}>
-                  {exercise.perFoot ? `${selectedFoot==='left'?'Left':'Right'} foot technique` : 'Total repetitions completed'}
+                  {exercise.max_is_good === false 
+                    ? `How many attempts to complete ${exercise.successful_reps ?? exercise.sets} successful reps`
+                    : exercise.perFoot 
+                      ? `${selectedFoot==='left'?'Left':'Right'} foot - maximum repetitions achieved`
+                      : 'Maximum repetitions completed in this set'
+                  }
                 </Text>
               </View>
               
@@ -482,7 +489,9 @@ const completeWorkout = async () => {
                   textAlign="center"
                   selectTextOnFocus
                 />
-                <Text style={styles.inputUnit}>reps</Text>
+                <Text style={styles.inputUnit}>
+                  {exercise.max_is_good === false ? 'attempts' : 'reps'}
+                </Text>
               </View>
               
               <Pressable 

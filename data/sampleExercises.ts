@@ -9,6 +9,7 @@ export interface Exercise {
   description: string;
   uses_tracking: boolean;
   max_is_good?: boolean;
+  successful_reps?: number; // for max_is_good === false
   sets: number;
   set_duration?: number;
   rest: number;
@@ -390,6 +391,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
   max_is_good: false,
+  successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -410,6 +413,7 @@ export const sampleExercises: Exercise[] = [
   max_is_good: false,
   sets: 2,
   rest: 30,
+  successful_reps: 10,
   perFoot: true,
   videoUrls: {
     left: 'https://firebasestorage.googleapis.com/v0/b/soccer-app-7147f.firebasestorage.app/o/Left%20Foot%20Open%20Up%20and%20Play%20Diagonal.mp4?alt=media&token=eb1b4d41-4a59-41b7-a6be-dcbc28ae4767',
@@ -428,6 +432,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -447,6 +453,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -466,6 +474,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -485,6 +495,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -504,6 +516,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -523,6 +537,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -542,6 +558,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -561,6 +579,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -580,6 +600,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -599,6 +621,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -617,6 +641,7 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 5,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -635,6 +660,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+      successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -654,6 +681,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -673,6 +702,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -692,6 +723,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -711,6 +744,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -730,6 +765,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 4,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -749,6 +786,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -768,6 +807,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -785,6 +826,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -802,6 +845,7 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
   rest: 30,
   perFoot: true,
    videoUrls: {
@@ -819,6 +863,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -836,6 +882,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -853,6 +901,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -870,6 +920,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -888,6 +940,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 10,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -905,6 +959,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -922,6 +978,8 @@ export const sampleExercises: Exercise[] = [
   uses_tracking: true,
   sets: 2,
     max_is_good: false,
+          successful_reps: 5,
+
   rest: 30,
   perFoot: true,
   videoUrls: {

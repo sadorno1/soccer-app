@@ -31,7 +31,8 @@ export interface Exercise {
   setup: string;
   description: string;
   uses_tracking: boolean;
-  max_is_good?: boolean; // true = higher is better, false = lower is better
+  max_is_good?: boolean; 
+  successful_reps?: number; // for max_is_good === false
   sets: number;
   set_duration?: number;
   rest: number;
@@ -56,6 +57,7 @@ interface WorkoutContextType {
   activeWorkoutId: string | null;
   addWorkout: (workout: Omit<Workout, 'id' | 'userId'>) => Promise<void>;
   deleteWorkout: (id: string) => Promise<void>;
+  deleteAllWorkouts: () => Promise<void>;
   setActiveWorkout: (id: string) => void;
   clearActiveWorkout: () => void;
   addExerciseToWorkout: (workoutId: string, exercise: Omit<Exercise, 'id'>) => Promise<void>;
@@ -73,6 +75,7 @@ const WorkoutContext = createContext<WorkoutContextType>({
   activeWorkoutId: null,
   addWorkout: async () => {},
   deleteWorkout: async () => {},
+  deleteAllWorkouts: async () => {},
   setActiveWorkout: () => {},
   clearActiveWorkout: () => {},
   addExerciseToWorkout: async () => {},
@@ -221,6 +224,22 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteAllWorkouts = async () => {
+    if (!user) return;
+    
+    try {
+      const deletePromises = workouts.map(workout => 
+        deleteDoc(doc(db, 'workouts', workout.id))
+      );
+      
+      await Promise.all(deletePromises);
+      console.log('All workouts deleted successfully');
+    } catch (error) {
+      console.error('Error deleting all workouts:', error);
+      throw error;
+    }
+  };
+
   const deleteExerciseFromWorkout = async (workoutId: string, exerciseId: string) => {
     try {
       const workoutRef = doc(db, 'workouts', workoutId);
@@ -299,6 +318,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       activeWorkoutId,
       addWorkout,
       deleteWorkout,
+      deleteAllWorkouts,
       setActiveWorkout: setActiveWorkoutId,
       clearActiveWorkout: () => setActiveWorkoutId(null),
       addExerciseToWorkout,
