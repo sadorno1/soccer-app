@@ -132,7 +132,6 @@ export default function StartWorkoutScreen() {
   // Countdown helper
   const startCountdown = (secs: number, next: () => void) => {
     if (timerRef.current) clearInterval(timerRef.current)
-    setCount(secs)
     timerRef.current = setInterval(() => {
       if (!paused) {
         setCount(c => (c <= 1 ? (clearInterval(timerRef.current!), next(), 0) : c - 1))
@@ -140,20 +139,22 @@ export default function StartWorkoutScreen() {
     }, 1000)
   }
 
-  // Phase transitions
-  useEffect(() => {
+  const resetTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (phase === 'ready') {
+      setCount(10)
       startCountdown(10, () => setPhase('active'))
     } else if (phase === 'active' && !exercise.uses_tracking) {
-      startCountdown(exercise.set_duration || 30, () => setPhase('rest'))
+      const duration = exercise.set_duration || 30
+      setCount(duration)
+      startCountdown(duration, () => setPhase('rest'))
     } else if (phase === 'active' && exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1) {
-      // Start timer for tracking exercises with meaningful set duration, but don't auto-advance
+      setCount(exercise.set_duration)
       startCountdown(exercise.set_duration, () => {
-        // Timer finished, but don't advance phase - user must manually complete
         console.log('Timer finished - waiting for user to complete set')
       })
     } else if (phase === 'rest') {
+      setCount(exercise.rest)
       startCountdown(exercise.rest, () => {
         if (setIdx + 1 < exercise.sets) {
           setSetIdx(i => i + 1)
@@ -167,8 +168,91 @@ export default function StartWorkoutScreen() {
         }
       })
     }
+  }
+
+  // Phase transitions
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    
+    // Don't reset timer when just pausing/resuming
+    if (paused) {
+      return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    }
+    
+    // Always set the correct timer value for each phase
+    let initialTime = count
+    if (phase === 'ready') {
+      initialTime = 10
+      setCount(10)
+    } else if (phase === 'active' && !exercise.uses_tracking) {
+      initialTime = exercise.set_duration || 30
+      setCount(initialTime)
+    } else if (phase === 'active' && exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1) {
+      initialTime = exercise.set_duration
+      setCount(initialTime)
+    } else if (phase === 'rest') {
+      initialTime = exercise.rest
+      setCount(initialTime)
+    }
+    
+    // Start appropriate countdown
+    if (phase === 'ready') {
+      startCountdown(initialTime, () => setPhase('active'))
+    } else if (phase === 'active' && !exercise.uses_tracking) {
+      startCountdown(initialTime, () => setPhase('rest'))
+    } else if (phase === 'active' && exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1) {
+      startCountdown(initialTime, () => {
+        console.log('Timer finished - waiting for user to complete set')
+      })
+    } else if (phase === 'rest') {
+      startCountdown(initialTime, () => {
+        if (setIdx + 1 < exercise.sets) {
+          setSetIdx(i => i + 1)
+          setPhase('ready')
+        } else if (exIdx + 1 < workout.exercises.length) {
+          setExIdx(i => i + 1)
+          setSetIdx(0)
+          setPhase('ready')
+        } else {
+          completeWorkout()
+        }
+      })
+    }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [phase, exIdx, setIdx, paused])
+  }, [phase, exIdx, setIdx])
+
+  // Handle resume from pause - restart timer with current count
+  useEffect(() => {
+    if (!paused && count > 0 && timerRef.current === null) {
+      // Determine what should happen when timer reaches 0 based on current phase
+      let onComplete: () => void
+      
+      if (phase === 'ready') {
+        onComplete = () => setPhase('active')
+      } else if (phase === 'active' && !exercise.uses_tracking) {
+        onComplete = () => setPhase('rest')
+      } else if (phase === 'active' && exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1) {
+        onComplete = () => console.log('Timer finished - waiting for user to complete set')
+      } else if (phase === 'rest') {
+        onComplete = () => {
+          if (setIdx + 1 < exercise.sets) {
+            setSetIdx(i => i + 1)
+            setPhase('ready')
+          } else if (exIdx + 1 < workout.exercises.length) {
+            setExIdx(i => i + 1)
+            setSetIdx(0)
+            setPhase('ready')
+          } else {
+            completeWorkout()
+          }
+        }
+      } else {
+        return // No timer needed for this phase
+      }
+      
+      startCountdown(count, onComplete)
+    }
+  }, [paused])
 
   // Auto-switch foot
   useEffect(() => {
@@ -335,11 +419,57 @@ export default function StartWorkoutScreen() {
     setPhase('rest')
   }
 
+  // Complete workout with specific record data
+  const completeWorkoutWithRecord = async (recordData: Record<string, number>) => {
+    try {
+      const sessionResult = await saveSessionToFirestore(recordData);
+      const exerciseSnapshot = JSON.stringify(
+        workout.exercises.map(({ id, name, sets }) => ({ id, name, sets }))
+      );
+
+      /* ---------- 1. navigate away immediately ---------- */
+      router.replace({
+        pathname: '/workouts/[id]/complete',
+        params: {
+          id,
+          sessionId: sessionResult?.docId || 'no-session',
+          records: JSON.stringify(recordData),
+          exercises: exerciseSnapshot,
+          hasImprovements: sessionResult?.hasImprovements ? 'true' : 'false',
+          improvedExercises: JSON.stringify(sessionResult?.improvedExercises || []) 
+        },
+      });
+
+      /* ---------- 2. reset Quick Workout in the background ---------- */
+      // don't await; if it fails we just log the error
+      completeWorkoutSession(id).catch(console.error);
+
+      /* optional local cleanup */
+      setExIdx(0);
+      setSetIdx(0);
+      setPhase('ready');
+      setMaxRecord({});
+    } catch (e) {
+      console.error('Error completing workout:', e);
+      alert('Failed to complete workout. Please try again.');
+    }
+  };
+
   // Complete workout - Updated to handle user-specific completion
   // StartWorkoutScreen.tsx  (inside completeWorkout)
 const completeWorkout = async () => {
   try {
-    const sessionResult = await saveSessionToFirestore(maxRecord);
+    // If we're in an active tracking phase with input, save it first
+    let finalMaxRecord = { ...maxRecord };
+    if (phase === 'active' && exercise.uses_tracking && inputVal.trim()) {
+      const reps = parseInt(inputVal, 10);
+      if (!isNaN(reps)) {
+        finalMaxRecord[exercise.id] = Math.max(finalMaxRecord[exercise.id] || 0, reps);
+        console.log(`Saving current input before completing workout: ${exercise.id} = ${reps}`);
+      }
+    }
+
+    const sessionResult = await saveSessionToFirestore(finalMaxRecord);
     const exerciseSnapshot = JSON.stringify(
     workout.exercises.map(({ id, name, sets }) => ({ id, name, sets }))
   );
@@ -350,7 +480,7 @@ const completeWorkout = async () => {
       params: {
         id,
         sessionId: sessionResult?.docId || 'no-session',
-        records: JSON.stringify(maxRecord),
+        records: JSON.stringify(finalMaxRecord),
         exercises: exerciseSnapshot,
         hasImprovements: sessionResult?.hasImprovements ? 'true' : 'false',
         improvedExercises: JSON.stringify(sessionResult?.improvedExercises || []) 
@@ -381,11 +511,51 @@ const completeWorkout = async () => {
     else if (exIdx > 0) { const prev = workout.exercises[exIdx-1]; setExIdx(i=>i-1); setSetIdx(prev.sets-1); setPhase('rest') }
   }
   const goNext = () => {
-    if (phase === 'ready') setPhase('active')
-    else if (phase === 'active') setPhase('rest')
-    else if (setIdx+1 < exercise.sets) { setSetIdx(i=>i+1); setPhase('ready') }
-    else if (exIdx+1 < workout.exercises.length) { setExIdx(i=>i+1); setSetIdx(0); setPhase('ready') }
-    else completeWorkout()
+    // If we're in active phase with tracking and have input, save it first
+    if (phase === 'active' && exercise.uses_tracking && inputVal.trim()) {
+      const reps = parseInt(inputVal, 10);
+      if (!isNaN(reps)) {
+        const updatedMaxRecord = {
+          ...maxRecord,
+          [exercise.id]: Math.max(maxRecord[exercise.id] || 0, reps),
+        };
+        setMaxRecord(updatedMaxRecord);
+        setInputVal(''); // Clear input after saving
+        
+        // Check if this active->rest transition would complete the workout
+        const isLastSet = setIdx + 1 >= exercise.sets;
+        const isLastExercise = exIdx + 1 >= workout.exercises.length;
+        if (isLastSet && isLastExercise) {
+          // Complete workout with the updated record
+          completeWorkoutWithRecord(updatedMaxRecord);
+          return;
+        }
+        
+        // Continue with normal flow
+        setPhase('rest');
+        return;
+      }
+    }
+
+    // Handle other phase transitions
+    if (phase === 'ready') {
+      setPhase('active')
+    } else if (phase === 'active') {
+      setPhase('rest')
+    } else if (phase === 'rest') {
+      if (setIdx + 1 < exercise.sets) {
+        setSetIdx(i => i + 1);
+        setPhase('ready');
+      } else if (exIdx + 1 < workout.exercises.length) {
+        setExIdx(i => i + 1);
+        setSetIdx(0);
+        setPhase('ready');
+      } else {
+        // This is where we complete the workout when navigating with next
+        // Use the accumulated maxRecord to ensure personal bests are detected
+        completeWorkoutWithRecord(maxRecord);
+      }
+    }
   }
 
   return (
@@ -396,7 +566,10 @@ const completeWorkout = async () => {
         <View style={styles.pauseModal}>
           <Text style={styles.modalTitle}>Paused</Text>
           <View style={styles.modalButtons}>
-            <Pressable style={styles.modalButton} onPress={() => { setPaused(false); setPauseModalVisible(false) }}>
+            <Pressable 
+              style={[styles.modalButton, styles.resumeButton]} 
+              onPress={() => { setPaused(false); setPauseModalVisible(false) }}
+            >
               <Text style={styles.modalButtonText}>Resume</Text>
             </Pressable>
           </View>
@@ -407,7 +580,15 @@ const completeWorkout = async () => {
       <View style={styles.header}>
     
         <Text style={styles.headerTitle} numberOfLines={1}>{exercise.name}</Text>
-        <Pressable onPress={() => { setPaused(true); setPauseModalVisible(true) }} style={styles.headerBtn}>
+        <Pressable onPress={() => { 
+          setPaused(true); 
+          setPauseModalVisible(true);
+          // Clear the timer when pausing
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+        }} style={styles.headerBtn}>
           <Ionicons name="pause" size={32} color={COLORS.primary} />
         </Pressable>
       </View>
@@ -475,6 +656,9 @@ const completeWorkout = async () => {
                   <Text style={styles.timerLabel}>Time Remaining</Text>
                   <Text style={styles.timerCount}>{count}</Text>
                   <Text style={styles.timerUnit}>seconds</Text>
+                  <Pressable style={styles.resetTimerBtn} onPress={resetTimer}>
+                    <Ionicons name="refresh" size={20} color="white" />
+                  </Pressable>
                 </View>
               )}
               
@@ -506,9 +690,14 @@ const completeWorkout = async () => {
             </View>
           ) : (
             <>
-              <Text style={styles.phaseText}>{phase==='ready'?'Ready':phase==='rest'?'Rest':'Go!'}</Text>
-              <Text style={styles.countdown}>{count}</Text>
-              <Text style={styles.phaseSubtext}>{phase==='active'?'Perform':'Next Set'}</Text>
+              <View style={styles.timerMainDisplay}>
+                <Text style={styles.phaseText}>{phase==='ready'?'Ready':phase==='rest'?'Rest':'Go!'}</Text>
+                <Text style={styles.countdown}>{count}</Text>
+                <Text style={styles.phaseSubtext}>{phase==='active'?'Perform':'Next Set'}</Text>
+              </View>
+              <Pressable style={styles.resetTimerMainBtn} onPress={resetTimer}>
+                <Ionicons name="refresh" size={24} color="white" />
+              </Pressable>
             </>
           )}
         </View>
@@ -590,7 +779,6 @@ const styles = StyleSheet.create({
   modalButton: { 
     flex: 1, 
     paddingVertical: 16, 
-    backgroundColor: COLORS.primary, 
     borderRadius: 12, 
     alignItems: 'center',
     shadowColor: '#000',
@@ -598,6 +786,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+  },
+  resumeButton: {
+    backgroundColor: COLORS.primary,
   },
   modalButtonText: { color: 'white', fontWeight: '600', fontSize: 18 },
   content: { flex: 1 },
@@ -688,10 +879,37 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 40, // Increased padding to make room for button
     marginBottom: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
+    position: 'relative',
+  },
+  resetTimerBtn: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timerMainDisplay: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  resetTimerMainBtn: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   timerLabel: {
     color: 'rgba(255,255,255,0.8)',

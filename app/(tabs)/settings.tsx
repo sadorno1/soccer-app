@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { GlobalStyles } from '@/theme';
 import { useRouter } from 'expo-router';
-import Theme, { GlobalStyles } from '@/theme';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
 
 export default function SettingsScreen() {
