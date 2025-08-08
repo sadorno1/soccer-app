@@ -1,18 +1,21 @@
+import { COLORS } from '@/constants/Colors';
+import { auth } from '@/lib/firebase';
+import { GlobalStyles, SIZES, moderateScale, verticalScale } from '@/theme';
 import { useRouter } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 
 export default function LoginScreen({ navigation }: any) {
@@ -36,32 +39,40 @@ export default function LoginScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.root}
-    >
-      <View style={styles.card}>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
         {/* logo */}
         <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
 
-        <Text style={styles.title}>Welcome back</Text>
+        <Text style={GlobalStyles.title_auth}>Welcome back</Text>
 
         <TextInput
           placeholder="Email"
-          placeholderTextColor="#9ca3af" 
+          placeholderTextColor={COLORS.textMuted} 
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
-          style={styles.input}
+          style={[GlobalStyles.input, styles.customInput]}
+          selectionColor={COLORS.primary}
         />
         <TextInput
           placeholder="Password"
-          placeholderTextColor="#9ca3af" 
+          placeholderTextColor={COLORS.textMuted} 
           secureTextEntry
           value={password}
           onChangeText={setPassword}
-          style={styles.input}
+          style={[GlobalStyles.input, styles.customInput]}
+          selectionColor={COLORS.primary}
         />
 
         {error && <Text style={styles.error}>{error}</Text>}
@@ -71,7 +82,7 @@ export default function LoginScreen({ navigation }: any) {
           onPress={handleLogin}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>Sign in</Text>}
+          {loading ? <ActivityIndicator color={COLORS.background} /> : <Text style={GlobalStyles.buttonText}>Sign in</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/signup')}>
@@ -82,22 +93,30 @@ export default function LoginScreen({ navigation }: any) {
         <Text style={styles.link}>Forgot password?</Text>
       </TouchableOpacity>
 
-      </View>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
+  container: {
     flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#f3f4f6',
+    paddingHorizontal: SIZES.lg,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 28,
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.radius,
+    padding: SIZES.xl, // Increased padding
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
@@ -105,38 +124,39 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   logo: {
-    width: 72,
-    height: 72,
+    width: moderateScale(72),
+    height: moderateScale(72),
     alignSelf: 'center',
-    marginBottom: 24,
+    marginBottom: SIZES.xl, // Increased margin
     resizeMode: 'contain',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#7385a0ff',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
+  customInput: {
+    // Override any system styling that causes yellow highlight
+    backgroundColor: COLORS.background,
+    color: COLORS.text,
   },
   button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    paddingVertical: verticalScale(16),
+    borderRadius: SIZES.radius,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SIZES.lg, // Increased margin
+    marginTop: SIZES.md, // Increased margin
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  link: { color: '#2563eb', textAlign: 'center', marginTop: 4 },
-  error: { color: '#dc2626', textAlign: 'center', marginBottom: 8 },
-  forgot: { color: '#2563eb', textAlign: 'center', marginTop: 8 },
-
+  buttonDisabled: { 
+    opacity: 0.6 
+  },
+  link: { 
+    color: COLORS.primary, 
+    textAlign: 'center', 
+    marginTop: SIZES.md, // Increased margin
+    fontSize: SIZES.body,
+    fontWeight: '600',
+  },
+  error: { 
+    color: COLORS.error, 
+    textAlign: 'center', 
+    marginBottom: SIZES.md, // Increased margin
+    fontSize: SIZES.body,
+  },
 });

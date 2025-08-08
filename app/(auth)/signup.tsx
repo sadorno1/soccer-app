@@ -2,21 +2,24 @@
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 
+import { COLORS } from '@/constants/Colors';
+import { auth } from '@/lib/firebase';
+import { GlobalStyles, SIZES, moderateScale, verticalScale } from '@/theme';
+import { Link, useRouter } from 'expo-router';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
   ActivityIndicator,
-  StyleSheet,
   Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter, Link } from 'expo-router';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -26,6 +29,12 @@ export default function SignupScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // iOS hack to disable AutoFill yellow styling
+  const iosNoAutofill =
+    Platform.OS === 'ios'
+      ? { textContentType: 'oneTimeCode' as const, autoComplete: 'off' as const }
+      : {};
 
   const handleSignup = async () => {
   setError(null);
@@ -44,39 +53,64 @@ export default function SignupScreen() {
 };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.root}
-    >
-      <View style={styles.card}>
+    <View style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.card}>
         <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
-        <Text style={styles.title}>Create an account</Text>
+        <Text style={GlobalStyles.title_auth}>Create an account</Text>
 
         <TextInput
           placeholder="Email"
-        placeholderTextColor="#9ca3af" 
+        placeholderTextColor={COLORS.textMuted} 
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
-          style={styles.input}
+          style={[GlobalStyles.input, styles.customInput]}
+          selectionColor={COLORS.primary}
         />
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#9ca3af" 
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
-        <TextInput
-          placeholder="Confirm password"
-           placeholderTextColor="#9ca3af" 
-          secureTextEntry
-          value={confirm}
-          onChangeText={setConfirm}
-          style={styles.input}
-        />
+        
+        {/* Password */}
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor={COLORS.textMuted}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            style={[GlobalStyles.input, styles.customInput, styles.input]}
+            selectionColor={COLORS.primary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            {...iosNoAutofill}
+          />
+        </View>
+        
+        {/* Confirm password */}
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Confirm password"
+            placeholderTextColor={COLORS.textMuted}
+            secureTextEntry
+            value={confirm}
+            onChangeText={setConfirm}
+            style={[GlobalStyles.input, styles.customInput, styles.input]}
+            selectionColor={COLORS.primary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            {...iosNoAutofill}
+          />
+        </View>
 
         {error && <Text style={styles.error}>{error}</Text>}
 
@@ -86,9 +120,9 @@ export default function SignupScreen() {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator />
+            <ActivityIndicator color={COLORS.background} />
           ) : (
-            <Text style={styles.buttonText}>Sign up</Text>
+            <Text style={GlobalStyles.buttonText}>Sign up</Text>
           )}
         </TouchableOpacity>
 
@@ -98,22 +132,35 @@ export default function SignupScreen() {
             <Text style={styles.link}>Already have an account? Sign in</Text>
           </TouchableOpacity>
         </Link>
-      </View>
-    </KeyboardAvoidingView>
+
+        <TouchableOpacity onPress={() => router.push('/login')} style={styles.backButton}>
+          <Text style={styles.backText}>← Back to Login</Text>
+        </TouchableOpacity>
+
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
+  container: {
     flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#f3f4f6',
+    paddingHorizontal: SIZES.lg,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 28,
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.radius,
+    padding: SIZES.xl, // Increased padding
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
@@ -121,36 +168,65 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   logo: {
-    width: 72,
-    height: 72,
+    width: moderateScale(72),
+    height: moderateScale(72),
     alignSelf: 'center',
-    marginBottom: 24,
+    marginBottom: SIZES.xl, // Increased margin
     resizeMode: 'contain',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 24,
+  customInput: {
+    // Override any system styling that causes yellow highlight
+    backgroundColor: COLORS.background,
+    color: COLORS.text,
+    // Force override autofill styles
+    fontFamily: 'System',
+    fontSize: moderateScale(16),
+  },
+  inputWrapper: {
+    backgroundColor: COLORS.background, // your desired BG
+    borderRadius: SIZES.xs + SIZES.xs,
+    marginBottom: verticalScale(16),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
+    backgroundColor: 'transparent', // avoid fighting iOS highlight
+    color: COLORS.text,
+    marginBottom: 0, // Remove margin since wrapper handles it
   },
   button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    paddingVertical: verticalScale(16),
+    borderRadius: SIZES.radius,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SIZES.lg, // Increased margin
+    marginTop: SIZES.md, // Increased margin
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-  link: { color: '#2563eb', textAlign: 'center', marginTop: 4 },
-  error: { color: '#dc2626', textAlign: 'center', marginBottom: 8 },
+  buttonDisabled: { 
+    opacity: 0.6 
+  },
+  link: { 
+    color: COLORS.primary, 
+    textAlign: 'center', 
+    marginTop: SIZES.md, // Increased margin
+    marginBottom: SIZES.sm, // Added margin
+    fontSize: SIZES.body,
+    fontWeight: '600',
+  },
+  error: { 
+    color: COLORS.error, 
+    textAlign: 'center', 
+    marginBottom: SIZES.md, // Increased margin
+    fontSize: SIZES.body,
+  },
+  backButton: {
+    marginTop: SIZES.md,
+    paddingVertical: SIZES.sm,
+    alignItems: 'center',
+  },
+  backText: {
+    color: COLORS.textMuted,
+    fontSize: SIZES.body,
+    fontWeight: '500',
+  },
 });

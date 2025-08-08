@@ -2,8 +2,8 @@
 // Single source of truth for responsive helpers & shared styles.
 // Colors come from constants/Colors so you only maintain one palette.
 
-import { Dimensions, StyleSheet } from 'react-native';
 import { COLORS } from '@/constants/Colors';
+import { Dimensions, StyleSheet } from 'react-native';
 
 /* -------------------------------------------------------------------------- */
 /* Responsive helpers                                                         */
@@ -92,6 +92,13 @@ export const GlobalStyles = StyleSheet.create({
     textAlign: 'center',
     color: COLORS.text,
     flex: 1, 
+  },
+  title_auth: {
+    fontSize: moderateScale(28),
+    fontWeight: '700',
+    textAlign: 'center',
+    color: COLORS.text,
+    marginBottom: verticalScale(32), // Extra bottom padding for auth pages
   },
  add_back_Button: {
     backgroundColor: COLORS.primary,
@@ -283,6 +290,10 @@ add_backText: {
     borderRadius: SIZES.xs + SIZES.xs,
     padding: SIZES.sm + SIZES.xs,
     color: COLORS.text,
+    fontSize: moderateScale(16),
+    marginBottom: verticalScale(16),
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   modalButtons: {
     flexDirection: 'row',
