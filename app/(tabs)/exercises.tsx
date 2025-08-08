@@ -3,17 +3,18 @@ import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
 import { sampleExercises } from '@/data/sampleExercises';
 import { GlobalStyles, SIZES } from '@/theme';
-import { useRef, useState } from 'react';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
-  Linking,
   Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 
 export interface Exercise {
@@ -55,7 +56,6 @@ export default function Exercises() {
   const [selectedPosition, setSelectedPosition] = useState('All Positions');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [expandedVideos, setExpandedVideos] = useState<{[key: string]: boolean}>({});
   const flatListRef = useRef<FlatList>(null);
 
   // Filter exercises by position
@@ -72,15 +72,45 @@ export default function Exercises() {
   });
 
   const ExerciseModal = ({ exercise, visible, onClose }: { exercise: Exercise | null, visible: boolean, onClose: () => void }) => {
-    const toggleVideo = (videoType: string) => {
-      setExpandedVideos(prev => ({
-        ...prev,
-        [videoType]: !prev[videoType]
-      }));
-    };
+    const [activeVideo, setActiveVideo] = useState<string | null>(null);
+    const [isVideoLoading, setIsVideoLoading] = useState(true);
+    
+    // Create video player for the active video
+    const player = useVideoPlayer(activeVideo, (player) => {
+      player.loop = true;
+      player.muted = false;
+    });
+
+    // Reset active video when modal opens
+    useEffect(() => {
+      if (visible) {
+        setActiveVideo(null);
+      }
+    }, [visible]);
+
+    // Video loading state tracking
+    useEffect(() => {
+      if (player && activeVideo) {
+        setIsVideoLoading(true);
+        const statusUpdateInterval = setInterval(() => {
+          if (player.duration > 0) {
+            setIsVideoLoading(false);
+          }
+        }, 100);
+
+        return () => {
+          clearInterval(statusUpdateInterval);
+        };
+      }
+    }, [player, activeVideo]);
 
     const openVideo = (url: string) => {
-      Linking.openURL(url);
+      setActiveVideo(url);
+    };
+
+    const closeVideo = () => {
+      setActiveVideo(null);
+      setIsVideoLoading(true);
     };
 
     return (
@@ -139,78 +169,57 @@ export default function Exercises() {
             <View style={styles.section}>
               <Text style={GlobalStyles.sectionTitle}>Video Resources</Text>
               {exercise?.videoUrls.default && (
-                <View>
-                  <Pressable 
-                    style={[styles.videoButton, { backgroundColor: COLORS.primary }]}
-                    onPress={() => toggleVideo('default')}
-                  >
-                    <Text style={styles.videoButtonText}>
-                      📹 Default Video {expandedVideos.default ? '▲' : '▼'}
-                    </Text>
-                  </Pressable>
-                  {expandedVideos.default && (
-                    <View style={styles.videoContent}>
-                      <Text style={styles.videoNote}>Video shows standard technique</Text>
-                      <Pressable 
-                        style={[styles.watchButton, { backgroundColor: COLORS.primary }]}
-                        onPress={() => openVideo(exercise?.videoUrls.default || '')}
-                      >
-                        <Text style={styles.watchButtonText}>▶️ Watch Video</Text>
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
+                <Pressable 
+                  style={[styles.watchButton, { backgroundColor: COLORS.primary, marginBottom: SIZES.sm }]}
+                  onPress={() => openVideo(exercise?.videoUrls.default || '')}
+                >
+                  <Text style={styles.watchButtonText}>Watch Video</Text>
+                </Pressable>
               )}
               {exercise?.videoUrls.left && (
-                <View>
-                  <Pressable 
-                    style={[styles.videoButton, { backgroundColor: COLORS.primary }]}
-                    onPress={() => toggleVideo('left')}
-                  >
-                    <Text style={styles.videoButtonText}>
-                      📹 Left Foot Video {expandedVideos.left ? '▲' : '▼'}
-                    </Text>
-                  </Pressable>
-                  {expandedVideos.left && (
-                    <View style={styles.videoContent}>
-                      <Text style={styles.videoNote}>Video demonstrates left foot technique</Text>
-                      <Pressable 
-                        style={[styles.watchButton, { backgroundColor: COLORS.success }]}
-                        onPress={() => openVideo(exercise?.videoUrls.left || '')}
-                      >
-                        <Text style={styles.watchButtonText}>▶️ Watch Video</Text>
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
+                <Pressable 
+                  style={[styles.watchButton, { backgroundColor: COLORS.success, marginBottom: SIZES.sm }]}
+                  onPress={() => openVideo(exercise?.videoUrls.left || '')}
+                >
+                  <Text style={styles.watchButtonText}>Watch Left Foot Video</Text>
+                </Pressable>
               )}
               {exercise?.videoUrls.right && (
-                <View>
-                  <Pressable 
-                    style={[styles.videoButton, { backgroundColor: COLORS.primary }]}
-                    onPress={() => toggleVideo('right')}
-                  >
-                    <Text style={styles.videoButtonText}>
-                      📹 Right Foot Video {expandedVideos.right ? '▲' : '▼'}
-                    </Text>
-                  </Pressable>
-                  {expandedVideos.right && (
-                    <View style={styles.videoContent}>
-                      <Text style={styles.videoNote}>Video demonstrates right foot technique</Text>
-                      <Pressable 
-                        style={[styles.watchButton, { backgroundColor: COLORS.error }]}
-                        onPress={() => openVideo(exercise?.videoUrls.right || '')}
-                      >
-                        <Text style={styles.watchButtonText}>▶️ Watch Video</Text>
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
+                <Pressable 
+                  style={[styles.watchButton, { backgroundColor: COLORS.error, marginBottom: SIZES.sm }]}
+                  onPress={() => openVideo(exercise?.videoUrls.right || '')}
+                >
+                  <Text style={styles.watchButtonText}>Watch Right Foot Video</Text>
+                </Pressable>
               )}
             </View>
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Video Player Overlay */}
+      {activeVideo && (
+        <View style={styles.videoOverlay}>
+          <View style={styles.videoContainer}>
+            <VideoView
+              player={player}
+              style={styles.video}
+              nativeControls
+            />
+            {isVideoLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              </View>
+            )}
+            <Pressable
+              style={styles.closeVideoButton}
+              onPress={closeVideo}
+            >
+              <Text style={styles.closeVideoButtonText}>✕</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
     </Modal>
     );
   };
@@ -338,39 +347,6 @@ const styles = {
   section: {
     marginBottom: SIZES.lg,
   },
-  videoButton: {
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
-    borderRadius: SIZES.radius,
-    marginBottom: SIZES.sm,
-  },
-  videoButtonText: {
-    color: '#fff',
-    fontSize: SIZES.body,
-    fontWeight: '500' as const,
-    textAlign: 'center' as const,
-  },
-  videoContent: {
-    backgroundColor: COLORS.surface,
-    padding: SIZES.md,
-    marginTop: 4,
-    marginBottom: SIZES.sm,
-    borderRadius: SIZES.radius,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  videoUrl: {
-    fontSize: SIZES.caption,
-    color: COLORS.primary,
-    fontFamily: 'monospace',
-    marginBottom: 4,
-  },
-  videoNote: {
-    fontSize: SIZES.caption,
-    color: COLORS.textMuted,
-    fontStyle: 'italic' as const,
-    marginBottom: SIZES.sm,
-  },
   watchButton: {
     paddingHorizontal: SIZES.md,
     paddingVertical: SIZES.sm,
@@ -381,5 +357,51 @@ const styles = {
     color: '#fff',
     fontSize: SIZES.body,
     fontWeight: '600' as const,
+  },
+  videoOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  videoContainer: {
+    width: 350,
+    aspectRatio: 16 / 9,
+    backgroundColor: COLORS.background,
+    borderRadius: SIZES.radius,
+    overflow: 'hidden' as const,
+  },
+  video: {
+    flex: 1,
+  },
+  loadingOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  closeVideoButton: {
+    position: 'absolute' as const,
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  closeVideoButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold' as const,
   },
 };
