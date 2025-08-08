@@ -259,11 +259,23 @@ export default function StartWorkoutScreen() {
 
         console.log('Updating global record document with improved exercises:', improvedExercises);
         await updateDoc(userRecordsRef, patch);
+        
+        return {
+          docId: userRecordsDocId,
+          hasImprovements: true,
+          improvedExercises,
+        };
       } else {
         // Create first global record document for this user
         const firstRecords: Record<string, number> = {};
+        const firstTimeImprovedExercises: string[] = [];
+        
         for (const exId of Object.keys(currentRecords)) {
           firstRecords[exId] = currentRecords[exId];
+          // For first time, only exercises with actual recorded reps are "improvements"
+          if (currentRecords[exId] > 0) {
+            firstTimeImprovedExercises.push(exId);
+          }
         }
 
         console.log('Creating first global record document:', firstRecords);
@@ -271,19 +283,22 @@ export default function StartWorkoutScreen() {
           userId: user.uid,
           timestamp: new Date(),
           records: firstRecords,
-          exercises: workout.exercises.map(ex => ({
-            id: ex.id,
-            name: ex.name,
-            maxReps: firstRecords[ex.id] || 0
-          }))
+          exercises: Object.keys(firstRecords).map(exId => {
+            const workoutExercise = workout.exercises.find(ex => ex.id === exId);
+            return {
+              id: exId,
+              name: workoutExercise?.name || 'Unknown Exercise',
+              maxReps: firstRecords[exId] || 0
+            };
+          })
         });
+        
+        return {
+          docId: userRecordsDocId,
+          hasImprovements: firstTimeImprovedExercises.length > 0,
+          improvedExercises: firstTimeImprovedExercises,
+        };
       }
-
-      return {
-        docId: userRecordsDocId,
-        hasImprovements: true,
-        improvedExercises,
-      };
     } catch (e) {
       console.error("Error saving session:", e);
       throw e;
@@ -294,6 +309,7 @@ export default function StartWorkoutScreen() {
   const handleDone = () => {
     const reps = parseInt(inputVal, 10)
     if (!isNaN(reps)) {
+      // Track the maximum reps for this exercise during this session
       setMaxRecord(prev => ({
         ...prev,
         [exercise.id]: Math.max(prev[exercise.id] || 0, reps),
