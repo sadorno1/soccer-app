@@ -361,18 +361,13 @@ const completeWorkout = async () => {
             <Pressable style={styles.modalButton} onPress={() => { setPaused(false); setPauseModalVisible(false) }}>
               <Text style={styles.modalButtonText}>Resume</Text>
             </Pressable>
-            <Pressable style={styles.modalButton} onPress={() => { setPaused(false); setPauseModalVisible(false); router.replace('/my-workouts') }}>
-              <Text style={styles.modalButtonText}>Exit</Text>
-            </Pressable>
           </View>
         </View>
       </Modal>
 
       {/* Header */}
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={32} color={COLORS.primary} />
-        </Pressable>
+    
         <Text style={styles.headerTitle} numberOfLines={1}>{exercise.name}</Text>
         <Pressable onPress={() => { setPaused(true); setPauseModalVisible(true) }} style={styles.headerBtn}>
           <Ionicons name="pause" size={32} color={COLORS.primary} />
@@ -385,17 +380,18 @@ const completeWorkout = async () => {
         <View style={styles.videoContainer}>
           {exercise.videoUrls && (
             <>
-              {exercise.perFoot && (
+              {/* Always show foot switcher if exercise has left/right videos */}
+              {(exercise.videoUrls.left || exercise.videoUrls.right) && (
                 <View style={styles.footSwitcher}>
                   {exercise.videoUrls.left && (
-                    <Pressable onPress={() => setSelectedFoot('left')} style={[styles.footBtn, selectedFoot==='left' && styles.footBtnActive]}>
+                    <View style={[styles.footBtn, selectedFoot==='left' && styles.footBtnActive]}>
                       <Text style={styles.footText}>L</Text>
-                    </Pressable>
+                    </View>
                   )}
                   {exercise.videoUrls.right && (
-                    <Pressable onPress={() => setSelectedFoot('right')} style={[styles.footBtn, selectedFoot==='right' && styles.footBtnActive]}>
+                    <View style={[styles.footBtn, selectedFoot==='right' && styles.footBtnActive]}>
                       <Text style={styles.footText}>R</Text>
-                    </Pressable>
+                    </View>
                   )}
                 </View>
               )}
@@ -421,17 +417,35 @@ const completeWorkout = async () => {
         <View style={[styles.timerContainer, { backgroundColor: getPhaseColor() }]}>  
           {phase==='active' && exercise.uses_tracking ? (
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                {exercise.perFoot ? `Reps on ${selectedFoot==='left'?'Left':'Right'} foot:` : 'Reps:'}
-              </Text>
-              <TextInput
-                style={styles.inputField}
-                keyboardType="numeric"
-                value={inputVal}
-                onChangeText={setInputVal}
-              />
-              <Pressable style={styles.inputBtn} onPress={handleDone}>
-                <Text style={styles.inputBtnText}>Done</Text>
+              <View style={styles.inputHeader}>
+                <Text style={styles.inputTitle}>Enter Your Reps</Text>
+                <Text style={styles.inputSubtitle}>
+                  {exercise.perFoot ? `${selectedFoot==='left'?'Left':'Right'} foot technique` : 'Total repetitions completed'}
+                </Text>
+              </View>
+              
+              <View style={styles.inputFieldContainer}>
+                <TextInput
+                  style={styles.inputField}
+                  keyboardType="numeric"
+                  value={inputVal}
+                  onChangeText={setInputVal}
+                  placeholder="0"
+                  placeholderTextColor="rgba(255,255,255,0.5)"
+                  textAlign="center"
+                  selectTextOnFocus
+                />
+                <Text style={styles.inputUnit}>reps</Text>
+              </View>
+              
+              <Pressable 
+                style={[styles.inputBtn, inputVal ? styles.inputBtnActive : styles.inputBtnDisabled]} 
+                onPress={handleDone}
+                disabled={!inputVal}
+              >
+                <Text style={[styles.inputBtnText, inputVal ? styles.inputBtnTextActive : styles.inputBtnTextDisabled]}>
+                  Complete Set
+                </Text>
               </Pressable>
             </View>
           ) : (
@@ -452,23 +466,42 @@ const completeWorkout = async () => {
 
         {/* Details */}
         <View style={styles.details}>
-          <Text style={styles.sectionHeading}>Preparation</Text>
-          <Text style={styles.paragraph}>{exercise.setup}</Text>
-          <Text style={styles.sectionHeading}>Execution</Text>
-          <Text style={styles.paragraph}>{exercise.description}</Text>
+          <View style={styles.detailSection}>
+            <View style={styles.detailHeader}>
+              <View style={styles.detailIconContainer}>
+                <Ionicons name="construct-outline" size={24} color={COLORS.primary} />
+              </View>
+              <Text style={styles.detailTitle}>Preparation</Text>
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailText}>{exercise.setup}</Text>
+            </View>
+          </View>
+
+          <View style={styles.detailSection}>
+            <View style={styles.detailHeader}>
+              <View style={styles.detailIconContainer}>
+                <Ionicons name="play-circle-outline" size={24} color={COLORS.success} />
+              </View>
+              <Text style={styles.detailTitle}>Execution</Text>
+            </View>
+            <View style={styles.detailContent}>
+              <Text style={styles.detailText}>{exercise.description}</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
 
       {/* Footer */}
       <View style={styles.footer}>
         <Pressable onPress={goPrev} style={styles.arrowBtn}>
-          <Ionicons name="arrow-back" size={36} color={COLORS.primary} />
+          <Ionicons name="arrow-back" size={40} color={COLORS.primary} />
         </Pressable>
         <Pressable onPress={completeWorkout} style={styles.finishBtn}>
           <Text style={styles.finishText}>End Workout</Text>
         </Pressable>
         <Pressable onPress={goNext} style={styles.arrowBtn}>
-          <Ionicons name="arrow-forward" size={36} color={COLORS.primary} />
+          <Ionicons name="arrow-forward" size={40} color={COLORS.primary} />
         </Pressable>
       </View>
     </View>
@@ -480,18 +513,43 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 32, paddingHorizontal: 20, backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   headerBtn: { width: 40, alignItems: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontSize: 24, fontWeight: '700', color: COLORS.text },
-  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  pauseModal: { position: 'absolute', top: '40%', left: '10%', right: '10%', backgroundColor: COLORS.surface, padding: 20, borderRadius: 12, alignItems: 'center' },
-  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 12, color: COLORS.text },
-  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  modalButton: { flex: 1, marginHorizontal: 8, paddingVertical: 10, backgroundColor: COLORS.primary, borderRadius: 8, alignItems: 'center' },
-  modalButtonText: { color: 'white', fontWeight: '600' },
+  modalOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.7)' },
+  pauseModal: { 
+    position: 'absolute', 
+    top: '35%', 
+    left: '8%', 
+    right: '8%', 
+    backgroundColor: COLORS.surface, 
+    padding: 32, 
+    borderRadius: 20, 
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: { fontSize: 28, fontWeight: '700', marginBottom: 24, color: COLORS.text },
+  modalButtons: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', gap: 16 },
+  modalButton: { 
+    flex: 1, 
+    paddingVertical: 16, 
+    backgroundColor: COLORS.primary, 
+    borderRadius: 12, 
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  modalButtonText: { color: 'white', fontWeight: '600', fontSize: 18 },
   content: { flex: 1 },
   contentContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   videoContainer: { width: '100%', aspectRatio: 16/9, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   video: { width: '100%', height: '100%' },
   loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
-  footSwitcher: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 },
+  footSwitcher: { position: 'absolute', top: 8, right: 8, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, zIndex: 10 },
   footBtn: { padding: 6 },
   footBtnActive: { backgroundColor: COLORS.primary },
   footText: { color: 'white', fontWeight: '600' },
@@ -499,20 +557,166 @@ const styles = StyleSheet.create({
   phaseText: { fontSize: 22, fontWeight: '700', color: 'white' },
   countdown: { fontSize: 56, fontWeight: '700', color: 'white' },
   phaseSubtext: { color: 'white', opacity: 0.9, marginTop: 4 },
-  inputContainer: { width: '100%', alignItems: 'center' },
-  inputLabel: { color: 'white', marginBottom: 8 },
-  inputField: { backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 24, width: 120, textAlign: 'center', padding: 8, borderRadius: 8, marginBottom: 8 },
-  inputBtn: { backgroundColor: 'white', padding: 8, borderRadius: 6 },
-  inputBtnText: { color: COLORS.primary, fontWeight: '600' },
+  inputContainer: { width: '100%', alignItems: 'center', paddingVertical: 8 },
+  inputHeader: { 
+    alignItems: 'center', 
+    marginBottom: 20 
+  },
+  inputTitle: { 
+    color: 'white', 
+    fontSize: 22, 
+    fontWeight: '700', 
+    marginBottom: 4 
+  },
+  inputSubtitle: { 
+    color: 'rgba(255,255,255,0.8)', 
+    fontSize: 16, 
+    textAlign: 'center' 
+  },
+  inputFieldContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 20,
+    minWidth: 180,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  inputField: { 
+    color: 'white', 
+    fontSize: 32, 
+    fontWeight: '700',
+    flex: 1,
+    paddingVertical: 12,
+  },
+  inputUnit: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  inputBtn: { 
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    minWidth: 160,
+    alignItems: 'center',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  inputBtnActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+  },
+  inputBtnDisabled: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    shadowColor: 'transparent',
+  },
+  inputBtnText: { 
+    fontWeight: '700', 
+    fontSize: 16 
+  },
+  inputBtnTextActive: {
+    color: COLORS.success,
+  },
+  inputBtnTextDisabled: {
+    color: 'rgba(255,255,255,0.6)',
+  },
   pills: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
   pill: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface, marginHorizontal: 6, borderWidth: 2, borderColor: COLORS.surface },
   pillDone: { backgroundColor: COLORS.successLight, borderColor: COLORS.success },
   pillActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
   details: { marginBottom: 24 },
+  detailSection: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  detailHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  detailIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  detailTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  detailContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  detailText: {
+    fontSize: 15,
+    color: COLORS.text,
+    lineHeight: 22,
+    letterSpacing: 0.3,
+  },
   sectionHeading: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginVertical: 8 },
   paragraph: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 32, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border },
-  arrowBtn: { padding: 8 },
-  finishBtn: { padding: 12, backgroundColor: COLORS.error, borderRadius: 8 },
-  finishText: { color: 'white', fontWeight: '700' },
+  footer: { 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingVertical: 20, 
+    paddingHorizontal: 32, 
+    backgroundColor: COLORS.surface, 
+    borderTopWidth: 1, 
+    borderTopColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  arrowBtn: { 
+    padding: 16,
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  finishBtn: { 
+    paddingHorizontal: 32,
+    paddingVertical: 16, 
+    backgroundColor: COLORS.error, 
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  finishText: { color: 'white', fontWeight: '700', fontSize: 18 },
 })
