@@ -56,8 +56,19 @@ export default function StartWorkoutScreen() {
         
         if (docSnapshot.exists()) {
           const records = docSnapshot.data().records || {};
-          setPreviousBestRecords(records);
-          console.log('Loaded previous records (global):', records);
+          // Convert new format {exerciseId: {value: number, timestamp: Date}} to old format {exerciseId: number}
+          const previousRecords: Record<string, number> = {};
+          for (const [exerciseId, recordData] of Object.entries(records)) {
+            if (typeof recordData === 'number') {
+              // Old format - backward compatibility
+              previousRecords[exerciseId] = recordData;
+            } else if (recordData && typeof recordData === 'object' && 'value' in recordData) {
+              // New format
+              previousRecords[exerciseId] = (recordData as any).value;
+            }
+          }
+          setPreviousBestRecords(previousRecords);
+          console.log('Loaded previous records (global):', previousRecords);
         } else {
           console.log('No previous records found');
           setPreviousBestRecords({});
@@ -283,11 +294,21 @@ export default function StartWorkoutScreen() {
       const prev = docSnapshot.exists() ? (docSnapshot.data().records || {}) : {};
 
       // Compute deltas (only exercises actually done this session)
-      const updatedRecords: Record<string, number> = { ...prev };
+      const updatedRecords: Record<string, number> = {};
       const improvedExercises: string[] = [];
 
       for (const [exerciseId, reps] of Object.entries(currentRecords)) {
-        const previousBest = Number(prev[exerciseId] || 0);
+        // Extract previous best value - handle both old and new formats
+        let previousBest = 0;
+        if (prev[exerciseId]) {
+          if (typeof prev[exerciseId] === 'number') {
+            // Old format
+            previousBest = Number(prev[exerciseId]);
+          } else if (prev[exerciseId] && typeof prev[exerciseId] === 'object' && 'value' in prev[exerciseId]) {
+            // New format
+            previousBest = Number((prev[exerciseId] as any).value || 0);
+          }
+        }
         const workoutExercise = workout.exercises.find(ex => ex.id === exerciseId);
         const maxIsGood = workoutExercise?.max_is_good !== false; // Default to true if not specified
         
@@ -334,9 +355,13 @@ export default function StartWorkoutScreen() {
         // Update existing global record document
         const patch: any = { timestamp: new Date() };
 
-        // Only write improved keys under records.*
+        // Only write improved keys under records.* with individual timestamps
+        const currentTimestamp = new Date();
         for (const exId of improvedExercises) {
-          patch[`records.${exId}`] = updatedRecords[exId];
+          patch[`records.${exId}`] = {
+            value: updatedRecords[exId],
+            timestamp: currentTimestamp
+          };
         }
 
         // Always ensure exercises array includes metadata for all improved exercises
@@ -350,7 +375,8 @@ export default function StartWorkoutScreen() {
             exercisesById.set(exId, {
               id: exId,
               name: workoutExercise.name,
-              maxReps: updatedRecords[exId] || 0
+              maxReps: updatedRecords[exId] || 0,
+              max_is_good: workoutExercise.max_is_good !== false // Default to true
             });
           }
         }
@@ -367,11 +393,15 @@ export default function StartWorkoutScreen() {
         };
       } else {
         // Create first global record document for this user
-        const firstRecords: Record<string, number> = {};
+        const firstRecords: Record<string, any> = {};
         const firstTimeImprovedExercises: string[] = [];
+        const currentTimestamp = new Date();
         
         for (const exId of Object.keys(currentRecords)) {
-          firstRecords[exId] = currentRecords[exId];
+          firstRecords[exId] = {
+            value: currentRecords[exId],
+            timestamp: currentTimestamp
+          };
           // For first time, only exercises with actual recorded reps are "improvements"
           if (currentRecords[exId] > 0) {
             firstTimeImprovedExercises.push(exId);
@@ -381,14 +411,15 @@ export default function StartWorkoutScreen() {
         console.log('Creating first global record document:', firstRecords);
         await setDoc(userRecordsRef, {
           userId: user.uid,
-          timestamp: new Date(),
+          timestamp: currentTimestamp,
           records: firstRecords,
           exercises: Object.keys(firstRecords).map(exId => {
             const workoutExercise = workout.exercises.find(ex => ex.id === exId);
             return {
               id: exId,
               name: workoutExercise?.name || 'Unknown Exercise',
-              maxReps: firstRecords[exId] || 0
+              maxReps: firstRecords[exId].value || 0,
+              max_is_good: workoutExercise?.max_is_good !== false // Default to true
             };
           })
         });
