@@ -1,8 +1,8 @@
 import { COLORS } from '@/constants/Colors'
 import { useWorkout } from '@/context/WorkoutContext'
 import { Ionicons } from '@expo/vector-icons'
-import { ResizeMode, Video } from 'expo-av'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { VideoView, useVideoPlayer } from 'expo-video'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -16,17 +16,17 @@ import {
 } from 'react-native'
 
 // Firebase imports
+import { useAuth } from '@/context/AuthContext'; // Import AuthContext
 import { db } from '@/lib/firebase'
-import { 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
+import {
   addDoc,
   collection,
-  getDocs 
-} from 'firebase/firestore';
-import { useAuth } from '@/context/AuthContext' // Import AuthContext
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  where
+} from 'firebase/firestore'
 
 type Phase = 'ready' | 'active' | 'rest'
 type Foot = 'default' | 'left' | 'right'
@@ -67,14 +67,47 @@ export default function StartWorkoutScreen() {
   const exercise = workout.exercises[exIdx]
 
   // Video & timer refs
-  const videoRef = useRef<Video>(null)
-  const [videoStatus, setVideoStatus] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [paused, setPaused] = useState(false)
   const [pauseModalVisible, setPauseModalVisible] = useState(false)
   const [selectedFoot, setSelectedFoot] = useState<Foot>('default')
   const [inputVal, setInputVal] = useState('')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  
+  // Create video player
+  const videoSource = exercise.videoUrls ? (exercise.videoUrls[selectedFoot] ?? exercise.videoUrls.default!) : null
+  const player = useVideoPlayer(videoSource, (player) => {
+    player.loop = true
+    player.muted = false
+  })
+
+  // Video loading state tracking
+  useEffect(() => {
+    if (player) {
+      const statusUpdateInterval = setInterval(() => {
+        if (player.duration > 0) {
+          setIsLoading(false)
+        }
+      }, 100)
+
+      return () => {
+        clearInterval(statusUpdateInterval)
+      }
+    }
+  }, [player])
+
+  // Update video source when foot selection changes
+  useEffect(() => {
+    if (exercise.videoUrls && player) {
+      setIsLoading(true) // Reset loading state when changing video
+      const newSource = exercise.videoUrls[selectedFoot] ?? exercise.videoUrls.default!
+      // Use replaceAsync to avoid UI freezes on iOS
+      player.replaceAsync(newSource).catch((error) => {
+        console.error('Error replacing video source:', error)
+        setIsLoading(false) // Stop loading on error
+      })
+    }
+  }, [selectedFoot, exercise.videoUrls, player])
 
   // Countdown helper
   const startCountdown = (secs: number, next: () => void) => {
@@ -117,22 +150,6 @@ export default function StartWorkoutScreen() {
       setSelectedFoot(setIdx % 2 === 0 ? 'left' : 'right')
     }
   }, [setIdx])
-
-  // Video status handler
-  const onStatusUpdate = (status: any) => {
-    setVideoStatus(status)
-    if (status.isLoaded && !status.isPlaying && !status.isBuffering) {
-      setIsLoading(false)
-    }
-  }
-
-  const togglePlayback = async () => {
-    if (videoStatus?.isPlaying) {
-      await videoRef.current?.pauseAsync()
-    } else {
-      await videoRef.current?.playAsync()
-    }
-  }
 
   // Phase color
   const getPhaseColor = () =>
@@ -314,20 +331,19 @@ const completeWorkout = async () => {
                   )}
                 </View>
               )}
-              <Video
-                ref={videoRef}
-                source={{ uri: exercise.videoUrls[selectedFoot] ?? exercise.videoUrls.default! }}
+              
+              <VideoView
+                player={player}
                 style={styles.video}
-                resizeMode={ResizeMode.CONTAIN}
-                useNativeControls={false}
-                isLooping={false}
-                onPlaybackStatusUpdate={onStatusUpdate}
+                contentFit="contain"
+                allowsFullscreen={false}
+                showsTimecodes={true}
               />
-              {isLoading && <ActivityIndicator style={styles.loading} size="large" color={COLORS.primary} />}
-              {!isLoading && !videoStatus?.isPlaying && (
-                <Pressable onPress={togglePlayback} style={styles.playButton}>
-                  <Text style={styles.playIcon}>▶</Text>
-                </Pressable>
+              
+              {isLoading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
               )}
             </>
           )}
@@ -406,9 +422,7 @@ const styles = StyleSheet.create({
   contentContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   videoContainer: { width: '100%', aspectRatio: 16/9, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   video: { width: '100%', height: '100%' },
-  loading: { position: 'absolute' },
-  playButton: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
-  playIcon: { fontSize: 48, color: 'white' },
+  loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   footSwitcher: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20 },
   footBtn: { padding: 6 },
   footBtnActive: { backgroundColor: COLORS.primary },
