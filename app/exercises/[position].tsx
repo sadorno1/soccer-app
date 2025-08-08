@@ -4,7 +4,7 @@ import { useWorkout } from '@/context/WorkoutContext';
 import { sampleExercises } from '@/data/sampleExercises';
 import { GlobalStyles } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 
 /* ---------- helper maps ---------- */
 const SUBCATEGORY_COLORS: Record<string, string> = {
@@ -50,7 +50,13 @@ export default function PositionExerciseScreen() {
   /* ---------- when user taps an exercise ---------- */
 const handleAdd = (exercise: typeof sampleExercises[number]) => {
   if (workoutId) {
-    addExerciseToWorkout(workoutId, exercise);
+    // Ensure tracking exercises have at least a minimal set_duration to prevent crashes
+    const exerciseWithDefaults = {
+      ...exercise,
+      set_duration: exercise.set_duration ?? (exercise.uses_tracking ? 1 : 0),
+    };
+    
+    addExerciseToWorkout(workoutId, exerciseWithDefaults);
 
     router.replace({
       pathname: '/workouts/[id]',

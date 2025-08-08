@@ -7,9 +7,9 @@ import {
   collection,
   deleteDoc,
   doc,
-  onSnapshot,
-  limit,
   getDocs,
+  limit,
+  onSnapshot,
   query,
   updateDoc,
   where
@@ -32,7 +32,7 @@ export interface Exercise {
   description: string;
   uses_tracking: boolean;
   sets: number;
-  set_duration: number;
+  set_duration?: number;
   rest: number;
   perFoot?: boolean;
   videoUrls: { default?: string; left?: string; right?: string };

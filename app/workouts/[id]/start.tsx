@@ -146,9 +146,9 @@ export default function StartWorkoutScreen() {
     if (phase === 'ready') {
       startCountdown(10, () => setPhase('active'))
     } else if (phase === 'active' && !exercise.uses_tracking) {
-      startCountdown(exercise.set_duration, () => setPhase('rest'))
-    } else if (phase === 'active' && exercise.uses_tracking && exercise.set_duration) {
-      // Start timer for tracking exercises with set duration, but don't auto-advance
+      startCountdown(exercise.set_duration || 30, () => setPhase('rest'))
+    } else if (phase === 'active' && exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1) {
+      // Start timer for tracking exercises with meaningful set duration, but don't auto-advance
       startCountdown(exercise.set_duration, () => {
         // Timer finished, but don't advance phase - user must manually complete
         console.log('Timer finished - waiting for user to complete set')
@@ -446,8 +446,8 @@ const completeWorkout = async () => {
                 </Text>
               </View>
               
-              {/* Timer display if set_duration exists */}
-              {exercise.set_duration && (
+              {/* Timer display if exercise has uses_tracking and meaningful set_duration */}
+              {exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1 && (
                 <View style={styles.timerDisplay}>
                   <Text style={styles.timerLabel}>Time Remaining</Text>
                   <Text style={styles.timerCount}>{count}</Text>
