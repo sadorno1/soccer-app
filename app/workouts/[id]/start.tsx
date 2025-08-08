@@ -204,11 +204,27 @@ export default function StartWorkoutScreen() {
 
       for (const [exerciseId, reps] of Object.entries(currentRecords)) {
         const previousBest = Number(prev[exerciseId] || 0);
-        console.log(`${exerciseId}: current=${reps}, previous=${previousBest}`);
-        if (reps > previousBest) {
+        const workoutExercise = workout.exercises.find(ex => ex.id === exerciseId);
+        const maxIsGood = workoutExercise?.max_is_good !== false; // Default to true if not specified
+        
+        console.log(`${exerciseId}: current=${reps}, previous=${previousBest}, maxIsGood=${maxIsGood}`);
+        
+        let isImprovement = false;
+        if (previousBest === 0) {
+          // First time doing this exercise is always an improvement (regardless of max_is_good)
+          isImprovement = reps > 0;
+        } else if (maxIsGood) {
+          // Higher is better (traditional reps, distance, etc.)
+          isImprovement = reps > previousBest;
+        } else {
+          // Lower is better (time, errors, etc.)
+          isImprovement = reps < previousBest;
+        }
+        
+        if (isImprovement) {
           updatedRecords[exerciseId] = reps;
           improvedExercises.push(exerciseId);
-          console.log(`🎉 Personal best: ${previousBest} → ${reps}`);
+          console.log(`🎉 Personal best: ${previousBest} → ${reps} (${maxIsGood ? 'higher is better' : 'lower is better'})`);
         }
       }
 

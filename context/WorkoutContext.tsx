@@ -31,6 +31,7 @@ export interface Exercise {
   setup: string;
   description: string;
   uses_tracking: boolean;
+  max_is_good?: boolean; // true = higher is better, false = lower is better
   sets: number;
   set_duration?: number;
   rest: number;

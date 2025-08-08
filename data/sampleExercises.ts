@@ -321,7 +321,7 @@ export const sampleExercises: Exercise[] = [
   max_is_good: true,
   sets: 1,
   set_duration: 180,
-  rest: 0,
+  rest: 30,
   videoUrls: {
     default: 'https://firebasestorage.googleapis.com/v0/b/soccer-app-7147f.firebasestorage.app/o/Juggling%20Size%205%20Ball.mp4?alt=media&token=817066fb-072a-403b-84af-b132c5f2a2e6'
     },
@@ -338,7 +338,7 @@ export const sampleExercises: Exercise[] = [
   max_is_good: true,
   sets: 1,
   set_duration: 180,
-  rest: 0,
+  rest: 30,
   videoUrls: {
     default: 'https://firebasestorage.googleapis.com/v0/b/soccer-app-7147f.firebasestorage.app/o/Juggling%20Size%201%20Ball.mp4?alt=media&token=b7baf9d1-1e00-405e-b0cf-69a5e703a75f'
     },
@@ -355,7 +355,7 @@ export const sampleExercises: Exercise[] = [
   max_is_good: true,
   sets: 1,
   set_duration: 180,
-  rest: 0,
+  rest: 30,
   videoUrls: {
     default: 'https://firebasestorage.googleapis.com/v0/b/soccer-app-7147f.firebasestorage.app/o/Juggling%20Tennis%20Ball.mp4?alt=media&token=2caff064-af2e-42b0-893e-3c195628079f'
     },
