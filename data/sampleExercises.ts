@@ -8,8 +8,9 @@ export interface Exercise {
   setup: string;
   description: string;
   uses_tracking: boolean;
+  max_is_good?: boolean;
   sets: number;
-  set_duration: number;
+  set_duration?: number;
   rest: number;
   perFoot?: boolean;
   videoUrls: {
@@ -317,6 +318,7 @@ export const sampleExercises: Exercise[] = [
   description:
     'Juggle the soccer ball (feet only) for 3 minutes continuously. Record most consecutive juggles without it touching the ground',
   uses_tracking: true,
+  max_is_good: true,
   sets: 1,
   set_duration: 180,
   rest: 0,
@@ -333,6 +335,7 @@ export const sampleExercises: Exercise[] = [
   description:
     'Juggle the soccer ball (feet only) for 3 minutes continuously. Record most consecutive juggles without it touching the ground',
   uses_tracking: true,
+  max_is_good: true,
   sets: 1,
   set_duration: 180,
   rest: 0,
@@ -349,6 +352,7 @@ export const sampleExercises: Exercise[] = [
   description:
     'Juggle the soccer ball (feet only) for 3 minutes continuously. Record most consecutive juggles without it touching the ground',
   uses_tracking: true,
+  max_is_good: true,
   sets: 1,
   set_duration: 180,
   rest: 0,
@@ -366,6 +370,7 @@ export const sampleExercises: Exercise[] = [
   description:
     'Pass the ball off of one of the boards, and as the ball comes back to you look to receive and play to the other board. Continue to repeat for the allotted time. Track how many passes you can get in 30 seconds during each set.',
   uses_tracking: true,
+  max_is_good: true,
   sets: 4,
   set_duration: 30,
   rest: 30,
@@ -384,7 +389,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you look to receive and play a forward pass into the goal. Repeat until 10 successful repetitions before moving the board to the other side of you. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+  max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -402,8 +407,8 @@ export const sampleExercises: Exercise[] = [
   description:
     'Pass the ball off of the board, and as it comes back to you look to receive and play a pass into the goal. Repeat until 10 successful repetitions before moving the board and goal to the other side of you. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
+  max_is_good: false,
   sets: 2,
-  set_duration: 10,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -422,7 +427,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you take a touch forward at an angle in the opposite direction. On the 2nd touch, look to play a reverse pass into the goal. Repeat until 10 successful repetitions before moving the board and goal to the other side of you. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -441,7 +446,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you take your first touch outside your hips. On your second touch, look to curl the ball with the inside of your foot between the cone and the post. Repeat until 10 successful repetitions before moving the board to the other side and repeating on the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -460,7 +465,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you take your first touch forward at an angle. On your second touch, look to drive the ball with your laces on the ground down the center of the goal. Repeat until 10 successful repetitions before moving the board to the other side and repeating on the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -479,7 +484,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you take your first touch outside your hips. On your second touch, look to curl the ball with the inside of your foot between the cone and the post in the air. Repeat until 10 successful repetitions before moving the board to the other side and repeating on the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -498,7 +503,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you take your first touch forward at an angle. On your second touch, look to drive the ball with your laces in the air down the center of the goal. Repeat until 10 successful repetitions before moving the board to the other side and repeating on the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -517,7 +522,7 @@ export const sampleExercises: Exercise[] = [
     'Pass the ball off of the board, and as it comes back to you take your first touch forward at an angle. On your second touch, look to clip the ball with your laces, aiming to get backspin, and hit the cross bar. Repeat until 10 successful repetitions before repeating on the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -536,7 +541,7 @@ export const sampleExercises: Exercise[] = [
     'Dribble at the cone with pace before performing 1v1 move to simulate beating a defender to the outside. After performing the 1v1 move, look to finish low and to the far post. Repeat until 5 successful repetitions before switching feet and moving the cone to the other side.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -555,7 +560,7 @@ export const sampleExercises: Exercise[] = [
     'Dribble at the cone with pace before performing 1v1 move to simulate beating a defender to the outside. After performing the 1v1 move, fake a shot before cutting inside. On the next touch, look to finish low and to the far post by curling the ball. Repeat until 5 successful repetitions before switching feet and moving the cone to the other side.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -574,7 +579,7 @@ export const sampleExercises: Exercise[] = [
     'Play off of the kickboard, and as ball comes back to you take first touch outside of your hips. On the 2nd touch, look to finish into either of the bottom corners. Look to complete 5 successful repetitions before moving the board to the other side and repeating with your other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -593,7 +598,7 @@ export const sampleExercises: Exercise[] = [
     'Play off of the kickboard, and as ball comes back to you take first touch forward at an angle. On the 2nd touch, look to finish into either of the bottom corners. Look to complete 5 successful repetitions before moving the board to the other side and repeating with your other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -611,7 +616,7 @@ export const sampleExercises: Exercise[] = [
     'Toss ball into air ahead of you. Look to run through the ball on your 1st touch after a bounce and finish efficiently on your 2nd touch into one of the corners of the goal. Complete 5 successful repetitions before switching to the other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -629,7 +634,7 @@ export const sampleExercises: Exercise[] = [
     'Toss ball into air ahead of you. Look to finish the ball off of the bounce in 1 touch into one of the corners. Complete 5 successful repetitions before switching to the other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -648,7 +653,7 @@ export const sampleExercises: Exercise[] = [
     'Play off of the kickboard, and take your first touch forward at an angle, before using the inside of your foot to whip the ball with pace, looking to land it between the penalty spot and the 6 yard box. Complete 5 successful repetitions before switching to the other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -667,7 +672,7 @@ export const sampleExercises: Exercise[] = [
     'Play off of the kickboard, and dribble at the cone with speed. Perform a 1v1 move to beat the cone to the outside before whipping the ball with pace with the inside of your foot, looking to land it between the penalty spot and the 6 yard box. Complete 5 successful repetitions before switching to the other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -686,7 +691,7 @@ export const sampleExercises: Exercise[] = [
     'Dribble at the cone with pace, before performing a 1v1 move to beat the cone towards the endline. Once at the endline, cut the ball back at an angle, looking to roll it over the penalty spot, or within a couple of yards. Complete 5 successful repetitions before switching to the other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -705,7 +710,7 @@ export const sampleExercises: Exercise[] = [
     'Dribble at the cone with pace, before performing a 1v1 move to beat the cone towards the endline. Once at the endline, float the ball to the back post, looking to land it just past the opposite corner of the 6, or within a couple of yards. Complete 5 successful repetitions before switching to the other foot.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -724,7 +729,7 @@ export const sampleExercises: Exercise[] = [
     'Play off of the kickboard, and as the ball is coming back to you look to break through the gate on your 1st touch. Dribble with speed towards the cone, and as you are 3–5 yards away look to play into either goal. Complete 5 successful repetitions before completing 5 successful repetitions in the other goal. Switch the board to the other side and repeat. Track how many reps it took to complete 5 successful per side.',
   uses_tracking: true,
   sets: 4,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -743,7 +748,7 @@ export const sampleExercises: Exercise[] = [
     'Play off of the kickboard, and as the ball is coming back to you look to play a ball 1st time that clears the line or goes over the cross bar of the goal that is ahead of you. Complete 10 successful repetitions before switching to the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -762,7 +767,7 @@ export const sampleExercises: Exercise[] = [
     'Throw the ball in the air in front of you slightly, and after 1 or 2 bounces use the inside of your foot to pop the ball up in the air. Look to clear the line or go over the cross bar of the goal that is ahead of you. Complete 10 successful repetitions before switching to the other foot. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -779,7 +784,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and as the ball is coming back to you use deception as the ball is approaching you. Take a touch to open up, and on the 2nd touch play into the goal. Complete 10 successful repetitions before moving the board and goal to opposite sides. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -796,7 +801,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and as the ball is coming back to you use deception as the ball is approaching you. Take a touch to open up, and on the 2nd touch play into the goal using a reverse pass. Complete 10 successful repetitions before moving the board and goal to opposite sides. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
    videoUrls: {
@@ -813,7 +818,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and take a touch at an angle away from the goal. Perform a stepover or turn using deception to turn towards goal before playing into goal. Complete 10 successful repetitions before moving the board and goal to opposite sides. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -830,7 +835,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and play a 1 touch pass into the goal the way you are facing. Play another ball off the kickboard, and take a touch at an angle away from the goal. Perform a stepover or turn using deception to turn towards goal before playing into goal. Complete 10 successful repetitions before moving the board and goals to opposite sides. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -847,7 +852,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and use your first touch to open up. On your second touch, pass the ball into the goal wide of you. Complete 10 successful repetitions before moving the board and goal to the opposite side. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -864,7 +869,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and use your first touch to open up. Take 2 hard dribbles forward at an angle, before using a stepover or fake to turn back towards the goal. After performing the turn, play into the goal behind you. Complete 10 successful repetitions before moving the board and goal to the opposite side. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -882,7 +887,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and use your first touch to open up. Take a hard dribble forward at an angle before faking a pass wide and bringing the ball back central. On your next touch, play a forward pass into the goal. Complete 10 successful repetitions before moving the board and goal to the opposite side. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 10,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -899,7 +904,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and as the ball comes back to you, use your first touch to go forward at an angle. On your second touch, drive the ball with your laces, looking to land it near the opposite corner of the 6 yard box, or within a couple of yards. Complete 5 successful repetitions before switching to the opposite side.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -916,7 +921,7 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and as the ball comes back to you, look to float or drive the ball to the far post on your 1st touch. Look to land the ball near the opposite corner of the 6 yard box, or within a couple of yards. Complete 5 successful repetitions before switching to the opposite side.',
   uses_tracking: true,
   sets: 2,
-  set_duration: 5,
+    max_is_good: false,
   rest: 30,
   perFoot: true,
   videoUrls: {

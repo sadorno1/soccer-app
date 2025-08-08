@@ -147,6 +147,12 @@ export default function StartWorkoutScreen() {
       startCountdown(10, () => setPhase('active'))
     } else if (phase === 'active' && !exercise.uses_tracking) {
       startCountdown(exercise.set_duration, () => setPhase('rest'))
+    } else if (phase === 'active' && exercise.uses_tracking && exercise.set_duration) {
+      // Start timer for tracking exercises with set duration, but don't auto-advance
+      startCountdown(exercise.set_duration, () => {
+        // Timer finished, but don't advance phase - user must manually complete
+        console.log('Timer finished - waiting for user to complete set')
+      })
     } else if (phase === 'rest') {
       startCountdown(exercise.rest, () => {
         if (setIdx + 1 < exercise.sets) {
@@ -424,6 +430,15 @@ const completeWorkout = async () => {
                 </Text>
               </View>
               
+              {/* Timer display if set_duration exists */}
+              {exercise.set_duration && (
+                <View style={styles.timerDisplay}>
+                  <Text style={styles.timerLabel}>Time Remaining</Text>
+                  <Text style={styles.timerCount}>{count}</Text>
+                  <Text style={styles.timerUnit}>seconds</Text>
+                </View>
+              )}
+              
               <View style={styles.inputFieldContainer}>
                 <TextInput
                   style={styles.inputField}
@@ -626,6 +641,33 @@ const styles = StyleSheet.create({
   },
   inputBtnTextDisabled: {
     color: 'rgba(255,255,255,0.6)',
+  },
+  timerDisplay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  timerLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  timerCount: {
+    color: 'white',
+    fontSize: 36,
+    fontWeight: '700',
+  },
+  timerUnit: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   pills: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
   pill: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surface, marginHorizontal: 6, borderWidth: 2, borderColor: COLORS.surface },
