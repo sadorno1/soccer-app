@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* --- helpers --- */
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (request.auth.token.email_verified == true &&
+         request.auth.token.email == 'samantha.adorno30@gmail.com')
+      );
+    }
+
+    /* --- Exercises: public read, admin-only write --- */
+    match /exercises/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    /* --- Workouts: owner read/write; admin can manage any; Quick create allowed --- */
+    match /workouts/{workoutId} {
+      // Read: owner OR admin
+      allow read: if isSignedIn() &&
+                  (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Create: owner OR admin OR owner creating a "Quick" workout
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        request.resource.data.userId == request.auth.uid ||
+        (request.resource.data.tag == 'Quick' &&
+         request.resource.data.userId == request.auth.uid)
+      );
+
+      // Update/Delete: admin always allowed; owner allowed unless 'permanent' is true
+      allow update, delete: if isSignedIn() && (
+        isAdmin() ||
+        (resource.data.userId == request.auth.uid && !resource.data.permanent)
+      );
+    }
+
+    /* --- Workout sessions: users can read/write their own record doc --- */
+    match /workoutSessions/{uid} {
+      allow read, write: if isSignedIn() && uid == request.auth.uid;
+    }
+  }
+}

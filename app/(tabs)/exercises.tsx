@@ -1,10 +1,11 @@
 // app/(tabs)/exercises.tsx
 import ExerciseCard from '@/components/ExerciseCard';
 import { COLORS } from '@/constants/Colors';
-import { sampleExercises } from '@/data/sampleExercises';
+import { db } from '@/lib/firebase';
 import { GlobalStyles, SIZES } from '@/theme';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { useEffect, useRef, useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,19 +18,22 @@ import {
   View
 } from 'react-native';
 
-export interface Exercise {
+// Firestore Exercise shape (loosely typed for safety)
+interface Exercise {
   id: string;
   name: string;
   subcategory: string;
   positionCategory: string[];
-  setup: string;
-  description: string;
-  uses_tracking: boolean;
-  sets: number;
-  set_duration: number;
-  rest: number;
+  setup?: string;
+  description?: string;
+  uses_tracking?: boolean;
+  max_is_good?: boolean;
+  successful_reps?: number;
+  sets?: number;
+  set_duration?: number;
+  rest?: number;
   perFoot?: boolean;
-  videoUrls: {
+  videoUrls?: {
     default?: string;
     left?: string;
     right?: string;
@@ -49,32 +53,63 @@ const SUBCATEGORY_COLORS: Record<string, string> = {
   Juggling: '#FFCA28',
 };
 
-// Position categories for filtering
-const positions = ['All Positions', 'Attacking Players', 'Center Midfielders', 'Center Backs', 'Outside Backs'];
-
 export default function Exercises() {
-  const [selectedPosition, setSelectedPosition] = useState('All Positions');
+  const [selectedPosition, setSelectedPosition] = useState<string>('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [positions, setPositions] = useState<string[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
-  // Filter exercises by position
-  const filteredExercises = sampleExercises.filter(exercise => 
-    selectedPosition === 'All Positions' || exercise.positionCategory.includes(selectedPosition)
-  );
+  // Load exercises from Firestore (read-only; no client seeding)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const colRef = collection(db, 'exercises');
+        const snap = await getDocs(colRef);
+        if (!mounted) return;
+        const items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Exercise[];
+        setExercises(items);
 
-  // Sort exercises by subcategory then name
-  const sortedExercises = [...filteredExercises].sort((a, b) => {
-    if (a.subcategory !== b.subcategory) {
-      return a.subcategory.localeCompare(b.subcategory);
-    }
-    return a.name.localeCompare(b.name);
-  });
+        // Build distinct positions (include everything from data, including "All Positions")
+        const posSet = new Set<string>();
+        items.forEach(it =>
+          (it.positionCategory || []).forEach(raw => {
+            const p = String(raw).trim();
+            if (p) posSet.add(p);
+          })
+        );
+        setPositions(Array.from(posSet).sort());
+      } catch (e) {
+        console.error('Failed to load exercises:', e);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // Filter + sort
+  const filteredExercises = useMemo(() => {
+    if (!selectedPosition) return exercises; // no filter selected -> show all
+    return exercises.filter(ex => (ex.positionCategory || []).includes(selectedPosition));
+  }, [exercises, selectedPosition]);
+
+  const sortedExercises = useMemo(() => {
+    return [...filteredExercises].sort((a, b) => {
+      if (a.subcategory !== b.subcategory) {
+        return (a.subcategory || '').localeCompare(b.subcategory || '');
+      }
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }, [filteredExercises]);
 
   const ExerciseModal = ({ exercise, visible, onClose }: { exercise: Exercise | null, visible: boolean, onClose: () => void }) => {
     const [activeVideo, setActiveVideo] = useState<string | null>(null);
     const [isVideoLoading, setIsVideoLoading] = useState(true);
-    
+
     // Create video player for the active video
     const player = useVideoPlayer(activeVideo, (player) => {
       player.loop = true;
@@ -113,6 +148,8 @@ export default function Exercises() {
       setIsVideoLoading(true);
     };
 
+    const v = exercise?.videoUrls || {};
+
     return (
       <Modal
         visible={visible}
@@ -144,7 +181,7 @@ export default function Exercises() {
           <View style={styles.positionsSection}>
             <Text style={GlobalStyles.sectionTitle}>Positions:</Text>
             <View style={styles.positionsList}>
-              {exercise?.positionCategory.map((position: string, index: number) => (
+              {exercise?.positionCategory?.map((position: string, index: number) => (
                 <View key={index} style={styles.positionBadge}>
                   <Text style={styles.positionText}>{position}</Text>
                 </View>
@@ -165,29 +202,29 @@ export default function Exercises() {
           </View>
 
           {/* Video Resources */}
-          {(exercise?.videoUrls.default || exercise?.videoUrls.left || exercise?.videoUrls.right) && (
+          {(v.default || v.left || v.right) && (
             <View style={styles.section}>
               <Text style={GlobalStyles.sectionTitle}>Video Resources</Text>
-              {exercise?.videoUrls.default && (
+              {v.default && (
                 <Pressable 
                   style={[styles.watchButton, { backgroundColor: COLORS.primary, marginBottom: SIZES.sm }]}
-                  onPress={() => openVideo(exercise?.videoUrls.default || '')}
+                  onPress={() => openVideo(v.default || '')}
                 >
                   <Text style={styles.watchButtonText}>Watch Video</Text>
                 </Pressable>
               )}
-              {exercise?.videoUrls.left && (
+              {v.left && (
                 <Pressable 
                   style={[styles.watchButton, { backgroundColor: COLORS.success, marginBottom: SIZES.sm }]}
-                  onPress={() => openVideo(exercise?.videoUrls.left || '')}
+                  onPress={() => openVideo(v.left || '')}
                 >
                   <Text style={styles.watchButtonText}>Watch Left Foot Video</Text>
                 </Pressable>
               )}
-              {exercise?.videoUrls.right && (
+              {v.right && (
                 <Pressable 
                   style={[styles.watchButton, { backgroundColor: COLORS.error, marginBottom: SIZES.sm }]}
-                  onPress={() => openVideo(exercise?.videoUrls.right || '')}
+                  onPress={() => openVideo(v.right || '')}
                 >
                   <Text style={styles.watchButtonText}>Watch Right Foot Video</Text>
                 </Pressable>
@@ -229,61 +266,77 @@ export default function Exercises() {
       <View style={GlobalStyles.headerRow}>
         <Text style={GlobalStyles.header}>All Exercises</Text>
       </View>
-      
-      {/* Position Filter */}
-      <View style={styles.filterContainer}>
-        <View style={styles.filterWrapper}>
-          {positions.map((position) => (
-            <TouchableOpacity
-              key={position}
-              style={[
-                styles.filterButton,
-                selectedPosition === position && styles.filterButtonActive
-              ]}
-              onPress={() => {
-                setSelectedPosition(position);
-                // Scroll to top when filter changes
-                flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-              }}
-            >
-              <Text style={[
-                styles.filterButtonText,
-                selectedPosition === position && styles.filterButtonTextActive
-              ]}>
-                {position}
-              </Text>
-            </TouchableOpacity>
-          ))}
+
+      {loading ? (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={{ marginTop: 8, color: COLORS.text }}>Loading exercises…</Text>
         </View>
-      </View>
+      ) : (
+        <>
+          {/* Position Filter */}
+          <View style={styles.filterContainer}>
+            <View style={styles.filterWrapper}>
+              {positions.map((position) => (
+                <TouchableOpacity
+                  key={position}
+                  style={[
+                    styles.filterButton,
+                    selectedPosition === position && styles.filterButtonActive
+                  ]}
+                  onPress={() => {
+                    setSelectedPosition(prev => (prev === position ? '' : position));
+                    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+                  }}
+                >
+                  <Text style={[
+                    styles.filterButtonText,
+                    selectedPosition === position && styles.filterButtonTextActive
+                  ]}>
+                    {position}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
 
-      {/* Exercise Cards */}
-      <FlatList
-        ref={flatListRef}
-        data={sortedExercises}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: 'space-between' }}
-        renderItem={({ item }) => (
-          <ExerciseCard
-            name={item.name}
-            subcategory={item.subcategory}
-            color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
-            onPress={() => {
-              setSelectedExercise(item);
-              setModalVisible(true);
-            }}
+          {/* Exercise Cards */}
+          <FlatList
+            ref={flatListRef}
+            data={sortedExercises}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: 'space-between' }}
+            renderItem={({ item }) => (
+              <ExerciseCard
+                name={item.name}
+                subcategory={item.subcategory}
+                color={SUBCATEGORY_COLORS[item.subcategory] ?? COLORS.primary}
+                onPress={() => {
+                  setSelectedExercise(item);
+                  setModalVisible(true);
+                }}
+              />
+            )
+            }
+            contentContainerStyle={{ paddingBottom: 40 }}
+            ListEmptyComponent={() => (
+              <View style={{ padding: 24 }}>
+                <Text style={{ color: COLORS.text }}>
+                  No exercises found.
+                </Text>
+              </View>
+            )}
           />
-        )}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      />
 
-      {/* Exercise Detail Modal */}
-      <ExerciseModal
-        exercise={selectedExercise}
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-      />
+          {/* Exercise Detail Modal */}
+          <ExerciseModal
+            exercise={selectedExercise}
+            visible={modalVisible}
+            onClose={() => setModalVisible(false)}
+          />
+        </>
+      )}
     </View>
   );
 }
