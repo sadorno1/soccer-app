@@ -557,9 +557,8 @@ export const sampleExercises: Exercise[] = [
     'Dribble at the cone with pace before performing 1v1 move to simulate beating a defender to the outside. After performing the 1v1 move, look to finish low and to the far post. Repeat until 5 successful repetitions before switching feet and moving the cone to the other side.',
   uses_tracking: true,
   sets: 2,
-    max_is_good: false,
-      successful_reps: 5,
-
+  max_is_good: false,
+  successful_reps: 5,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -881,9 +880,8 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and play a 1 touch pass into the goal the way you are facing. Play another ball off the kickboard, and take a touch at an angle away from the goal. Perform a stepover or turn using deception to turn towards goal before playing into goal. Complete 10 successful repetitions before moving the board and goals to opposite sides. Track how many total reps it took to complete 10 successful.',
   uses_tracking: true,
   sets: 2,
-    max_is_good: false,
-          successful_reps: 10,
-
+  max_is_good: false,
+  successful_reps: 10,
   rest: 30,
   perFoot: true,
   videoUrls: {
@@ -977,9 +975,8 @@ export const sampleExercises: Exercise[] = [
   description: 'Play off of the kickboard, and as the ball comes back to you, look to float or drive the ball to the far post on your 1st touch. Look to land the ball near the opposite corner of the 6 yard box, or within a couple of yards. Complete 5 successful repetitions before switching to the opposite side.',
   uses_tracking: true,
   sets: 2,
-    max_is_good: false,
-          successful_reps: 5,
-
+  max_is_good: false,
+  successful_reps: 5,
   rest: 30,
   perFoot: true,
   videoUrls: {

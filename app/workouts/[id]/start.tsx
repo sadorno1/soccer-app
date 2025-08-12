@@ -310,19 +310,20 @@ export default function StartWorkoutScreen() {
           }
         }
         const workoutExercise = workout.exercises.find(ex => ex.id === exerciseId);
-        const maxIsGood = workoutExercise?.max_is_good !== false; // Default to true if not specified
+        // Respect explicit max_is_good; default to false (lower is better) when not specified
+        const maxIsGood = workoutExercise?.max_is_good ?? false;
         
         console.log(`${exerciseId}: current=${reps}, previous=${previousBest}, maxIsGood=${maxIsGood}`);
         
         let isImprovement = false;
         if (previousBest === 0) {
-          // First time doing this exercise is always an improvement (regardless of max_is_good)
+          // First time doing this exercise is always an improvement if a positive value exists
           isImprovement = reps > 0;
         } else if (maxIsGood) {
-          // Higher is better (traditional reps, distance, etc.)
+          // Higher is better
           isImprovement = reps > previousBest;
         } else {
-          // Lower is better (time, errors, etc.)
+          // Lower is better
           isImprovement = reps < previousBest;
         }
         
@@ -376,7 +377,7 @@ export default function StartWorkoutScreen() {
               id: exId,
               name: workoutExercise.name,
               maxReps: updatedRecords[exId] || 0,
-              max_is_good: workoutExercise.max_is_good !== false // Default to true
+              max_is_good: workoutExercise.max_is_good ?? false,
             });
           }
         }
@@ -419,7 +420,7 @@ export default function StartWorkoutScreen() {
               id: exId,
               name: workoutExercise?.name || 'Unknown Exercise',
               maxReps: firstRecords[exId].value || 0,
-              max_is_good: workoutExercise?.max_is_good !== false // Default to true
+              max_is_good: workoutExercise?.max_is_good ?? false,
             };
           })
         });
@@ -634,14 +635,20 @@ const completeWorkout = async () => {
               {(exercise.videoUrls.left || exercise.videoUrls.right) && (
                 <View style={styles.footSwitcher}>
                   {exercise.videoUrls.left && (
-                    <View style={[styles.footBtn, selectedFoot==='left' && styles.footBtnActive]}>
+                    <Pressable
+                      onPress={() => setSelectedFoot('left')}
+                      style={[styles.footBtn, selectedFoot==='left' && styles.footBtnActive]}
+                    >
                       <Text style={styles.footText}>L</Text>
-                    </View>
+                    </Pressable>
                   )}
                   {exercise.videoUrls.right && (
-                    <View style={[styles.footBtn, selectedFoot==='right' && styles.footBtnActive]}>
+                    <Pressable
+                      onPress={() => setSelectedFoot('right')}
+                      style={[styles.footBtn, selectedFoot==='right' && styles.footBtnActive]}
+                    >
                       <Text style={styles.footText}>R</Text>
-                    </View>
+                    </Pressable>
                   )}
                 </View>
               )}
@@ -668,68 +675,74 @@ const completeWorkout = async () => {
           {phase==='active' && exercise.uses_tracking ? (
             <View style={styles.inputContainer}>
               <View style={styles.inputHeader}>
-                <Text style={styles.inputTitle}>
-                  {exercise.max_is_good === false ? 'Enter Total Attempts' : 'Enter Max Reps'}
-                </Text>
+                <Text style={styles.inputTitle}>Enter reps</Text>
                 <Text style={styles.inputSubtitle}>
-                  {exercise.max_is_good === false 
-                    ? `How many attempts to complete ${exercise.successful_reps ?? exercise.sets} successful reps`
-                    : exercise.perFoot 
-                      ? `${selectedFoot==='left'?'Left':'Right'} foot - maximum repetitions achieved`
-                      : 'Maximum repetitions completed in this set'
-                  }
+                  {typeof exercise.successful_reps === 'number' && exercise.successful_reps > 0
+                    ? `Goal: ${exercise.successful_reps} successful repetitions`
+                    : 'Record your successful repetitions'}
                 </Text>
+                {(exercise.perFoot || exercise.videoUrls?.left || exercise.videoUrls?.right) && (
+                  <View style={styles.footBadge}>
+                    <Text style={styles.footBadgeText}>
+                      {selectedFoot === 'left' ? 'Left Foot' : selectedFoot === 'right' ? 'Right Foot' : 'Either Foot'}
+                    </Text>
+                  </View>
+                )}
               </View>
               
-              {/* Timer display if exercise has uses_tracking and meaningful set_duration */}
+              {/* If tracking has a set duration, show timer in active phase */}
               {exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1 && (
                 <View style={styles.timerDisplay}>
-                  <Text style={styles.timerLabel}>Time Remaining</Text>
-                  <Text style={styles.timerCount}>{count}</Text>
-                  <Text style={styles.timerUnit}>seconds</Text>
-                  <Pressable style={styles.resetTimerBtn} onPress={resetTimer}>
-                    <Ionicons name="refresh" size={20} color="white" />
+                  <Pressable onPress={resetTimer} style={styles.resetTimerMainBtn}>
+                    <Ionicons name="refresh" size={20} color="#fff" />
                   </Pressable>
+                  <View style={styles.timerMainDisplay}>
+                    <Text style={styles.timerLabel}>Time left</Text>
+                    <Text style={styles.timerCount}>{count}s</Text>
+                    <Text style={styles.timerUnit}>seconds</Text>
+                  </View>
                 </View>
               )}
-              
+
+              {/* Reps input */}
               <View style={styles.inputFieldContainer}>
                 <TextInput
                   style={styles.inputField}
-                  keyboardType="numeric"
+                  keyboardType="number-pad"
                   value={inputVal}
                   onChangeText={setInputVal}
                   placeholder="0"
-                  placeholderTextColor="rgba(255,255,255,0.5)"
-                  textAlign="center"
-                  selectTextOnFocus
+                  placeholderTextColor="rgba(255,255,255,0.6)"
                 />
-                <Text style={styles.inputUnit}>
-                  {exercise.max_is_good === false ? 'attempts' : 'reps'}
-                </Text>
+                <Text style={styles.inputUnit}>reps</Text>
               </View>
-              
-              <Pressable 
-                style={[styles.inputBtn, inputVal ? styles.inputBtnActive : styles.inputBtnDisabled]} 
-                onPress={handleDone}
-                disabled={!inputVal}
-              >
-                <Text style={[styles.inputBtnText, inputVal ? styles.inputBtnTextActive : styles.inputBtnTextDisabled]}>
-                  Complete Set
-                </Text>
-              </Pressable>
+
+              {/* Done button */}
+              {(() => {
+                const repsNum = parseInt(inputVal, 10);
+                const valid = !isNaN(repsNum) && repsNum >= 0;
+                return (
+                  <Pressable
+                    onPress={handleDone}
+                    disabled={!valid}
+                    style={[styles.inputBtn, valid ? styles.inputBtnActive : styles.inputBtnDisabled]}
+                  >
+                    <Text style={[styles.inputBtnText, valid ? styles.inputBtnTextActive : styles.inputBtnTextDisabled]}>Done</Text>
+                  </Pressable>
+                );
+              })()}
             </View>
           ) : (
-            <>
-              <View style={styles.timerMainDisplay}>
-                <Text style={styles.phaseText}>{phase==='ready'?'Ready':phase==='rest'?'Rest':'Go!'}</Text>
-                <Text style={styles.countdown}>{count}</Text>
-                <Text style={styles.phaseSubtext}>{phase==='active'?'Perform':'Next Set'}</Text>
-              </View>
-              <Pressable style={styles.resetTimerMainBtn} onPress={resetTimer}>
-                <Ionicons name="refresh" size={24} color="white" />
-              </Pressable>
-            </>
+            // Fallback: show the phase countdown for non-tracking active, ready, and rest
+            <View style={{ alignItems: 'center' }}>
+              <Text style={styles.phaseText}>
+                {phase === 'ready' ? 'Get Ready' : phase === 'rest' ? 'Rest' : 'Active'}
+              </Text>
+              <Text style={styles.countdown}>{count}</Text>
+              <Text style={styles.phaseSubtext}>
+                {phase === 'ready' ? 'Starting soon' : phase === 'rest' ? 'Recover' : (!exercise.uses_tracking ? 'Keep going' : '')}
+              </Text>
+            </View>
           )}
         </View>
 
@@ -745,9 +758,9 @@ const completeWorkout = async () => {
           <View style={styles.detailSection}>
             <View style={styles.detailHeader}>
               <View style={styles.detailIconContainer}>
-                <Ionicons name="construct-outline" size={24} color={COLORS.primary} />
+                <Ionicons name="construct" size={20} color={COLORS.primary} />
               </View>
-              <Text style={styles.detailTitle}>Preparation</Text>
+              <Text style={styles.detailTitle}>Setup</Text>
             </View>
             <View style={styles.detailContent}>
               <Text style={styles.detailText}>{exercise.setup}</Text>
@@ -757,7 +770,7 @@ const completeWorkout = async () => {
           <View style={styles.detailSection}>
             <View style={styles.detailHeader}>
               <View style={styles.detailIconContainer}>
-                <Ionicons name="play-circle-outline" size={24} color={COLORS.success} />
+                <Ionicons name="walk" size={20} color={COLORS.primary} />
               </View>
               <Text style={styles.detailTitle}>Execution</Text>
             </View>
@@ -774,7 +787,7 @@ const completeWorkout = async () => {
           <Ionicons name="arrow-back" size={40} color={COLORS.primary} />
         </Pressable>
         <Pressable onPress={completeWorkout} style={styles.finishBtn}>
-          <Text style={styles.finishText}>End Workout</Text>
+          <Text style={styles.finishText}>Finish</Text>
         </Pressable>
         <Pressable onPress={goNext} style={styles.arrowBtn}>
           <Ionicons name="arrow-forward" size={40} color={COLORS.primary} />
@@ -831,6 +844,19 @@ const styles = StyleSheet.create({
   footBtn: { padding: 6 },
   footBtnActive: { backgroundColor: COLORS.primary },
   footText: { color: 'white', fontWeight: '600' },
+  footBadge: {
+    marginTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  footBadgeText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
   timerContainer: { borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 16 },
   phaseText: { fontSize: 22, fontWeight: '700', color: 'white' },
   countdown: { fontSize: 56, fontWeight: '700', color: 'white' },
@@ -908,13 +934,17 @@ const styles = StyleSheet.create({
   timerDisplay: {
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 40, // Increased padding to make room for button
-    marginBottom: 20,
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    marginBottom: 24,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.2)',
     position: 'relative',
+    alignSelf: 'center',
+    width: '92%',
+    maxWidth: 420,
+    minWidth: 260,
   },
   resetTimerBtn: {
     position: 'absolute',
@@ -929,7 +959,6 @@ const styles = StyleSheet.create({
   },
   timerMainDisplay: {
     alignItems: 'center',
-    flex: 1,
   },
   resetTimerMainBtn: {
     position: 'absolute',
