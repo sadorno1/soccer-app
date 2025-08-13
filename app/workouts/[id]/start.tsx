@@ -1,6 +1,7 @@
 import { COLORS } from '@/constants/Colors'
 import { useWorkout } from '@/context/WorkoutContext'
 import { Ionicons } from '@expo/vector-icons'
+import { Audio } from 'expo-av'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { VideoView, useVideoPlayer } from 'expo-video'
 import React, { useEffect, useRef, useState } from 'react'
@@ -43,6 +44,128 @@ export default function StartWorkoutScreen() {
   const [count, setCount] = useState(10)
   const [maxRecord, setMaxRecord] = useState<Record<string, number>>({})
   const [previousBestRecords, setPreviousBestRecords] = useState<Record<string, number>>({})
+
+  // Audio setup for beep sounds
+  const [beepSound, setBeepSound] = useState<Audio.Sound | null>(null)
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true)
+  
+  // Initialize beep sound
+  useEffect(() => {
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        })
+        
+        // Audio system initialized - sounds will be generated dynamically
+        setBeepSound(null) // We'll generate sounds on-demand to avoid file loading issues
+        console.log('Audio system initialized - ready for dynamic alarm generation')
+        
+      } catch (error) {
+        console.error('Audio setup error:', error)
+        setBeepSound(null)
+      }
+    }
+    
+    setupAudio()
+    
+    return () => {
+      if (beepSound) {
+        beepSound.unloadAsync()
+      }
+    }
+  }, [])
+
+  // Play bell alarm sound function
+  const playBeep = async () => {
+    // Check if sound is enabled
+    if (!soundEnabled) {
+      console.log('Sound disabled - skipping beep')
+      return
+    }
+    
+    try {
+      // Create a simple but effective alarm sound using Web Audio-compatible approach
+      const createSimpleAlarmSound = () => {
+        const sampleRate = 22050 // Lower sample rate for smaller file size
+        const duration = 0.5 // Half second alarm
+        const samples = Math.floor(sampleRate * duration)
+        const buffer = new ArrayBuffer(44 + samples * 2)
+        const view = new DataView(buffer)
+        
+        // WAV header
+        view.setUint32(0, 0x46464952, true) // 'RIFF'
+        view.setUint32(4, 36 + samples * 2, true)
+        view.setUint32(8, 0x45564157, true) // 'WAVE'
+        view.setUint32(12, 0x20746d66, true) // 'fmt '
+        view.setUint32(16, 16, true)
+        view.setUint16(20, 1, true) // PCM
+        view.setUint16(22, 1, true) // Mono
+        view.setUint32(24, sampleRate, true)
+        view.setUint32(28, sampleRate * 2, true)
+        view.setUint16(32, 2, true)
+        view.setUint16(34, 16, true)
+        view.setUint32(36, 0x61746164, true) // 'data'
+        view.setUint32(40, samples * 2, true)
+        
+        // Generate triple beep alarm pattern
+        for (let i = 0; i < samples; i++) {
+          const t = i / sampleRate
+          const beepFreq = 880 // A5 note - attention-grabbing frequency
+          
+          // Create 3 distinct beeps with gaps
+          const beepTime = 0.12 // Each beep lasts 120ms
+          const gapTime = 0.04 // 40ms gap between beeps
+          const cycleTime = beepTime + gapTime
+          
+          const cycle = Math.floor(t / cycleTime)
+          const timeInCycle = t % cycleTime
+          
+          let amplitude = 0
+          if (cycle < 3 && timeInCycle < beepTime) {
+            // We're in a beep phase
+            const beepProgress = timeInCycle / beepTime
+            // Sharp attack, quick decay for alarm effect
+            const envelope = beepProgress < 0.05 ? beepProgress / 0.05 : Math.exp(-(beepProgress - 0.05) * 12)
+            
+            // Mix of sine and square wave for harsh alarm sound
+            const sine = Math.sin(2 * Math.PI * beepFreq * t)
+            const square = Math.sign(sine) * 0.4
+            amplitude = (sine * 0.8 + square) * envelope
+          }
+          
+          const sample = Math.max(-32767, Math.min(32767, amplitude * 25000))
+          view.setInt16(44 + i * 2, sample, true)
+        }
+        
+        // Convert to base64
+        const bytes = new Uint8Array(buffer)
+        let binary = ''
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i])
+        }
+        return btoa(binary)
+      }
+      
+      const alarmBase64 = createSimpleAlarmSound()
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: `data:audio/wav;base64,${alarmBase64}` },
+        { shouldPlay: true, volume: 1.0 }
+      )
+      
+      // Clean up after playing
+      setTimeout(() => sound.unloadAsync().catch(() => {}), 800)
+      console.log('Alarm sound played successfully!')
+      
+    } catch (error) {
+      console.error('Error playing alarm sound:', error)
+      console.log('🚨 WORKOUT PHASE TRANSITION! 🚨')
+    }
+  }
 
   // Load previous records from the single global document
   useEffect(() => {
@@ -145,7 +268,15 @@ export default function StartWorkoutScreen() {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       if (!paused) {
-        setCount(c => (c <= 1 ? (clearInterval(timerRef.current!), next(), 0) : c - 1))
+        setCount(c => {
+          if (c <= 1) {
+            clearInterval(timerRef.current!)
+            playBeep() // Play beep on phase transition
+            next()
+            return 0
+          }
+          return c - 1
+        })
       }
     }, 1000)
   }
@@ -439,6 +570,7 @@ export default function StartWorkoutScreen() {
 
   // Handle Done
   const handleDone = () => {
+    playBeep() // Play beep when completing a set
     const reps = parseInt(inputVal, 10)
     if (!isNaN(reps)) {
       // Track the maximum reps for this exercise during this session
@@ -537,12 +669,14 @@ const completeWorkout = async () => {
 
   // Prev/Next
   const goPrev = () => {
+    playBeep() // Play beep on navigation
     if (phase === 'rest') setPhase('active')
     else if (phase === 'active') setPhase('ready')
     else if (setIdx > 0) { setSetIdx(i => i - 1); setPhase('rest') }
     else if (exIdx > 0) { const prev = workout.exercises[exIdx-1]; setExIdx(i=>i-1); setSetIdx(prev.sets-1); setPhase('rest') }
   }
   const goNext = () => {
+    playBeep() // Play beep on navigation
     // If we're in active phase with tracking and have input, save it first
     if (phase === 'active' && exercise.uses_tracking && inputVal.trim()) {
       const reps = parseInt(inputVal, 10);
@@ -597,6 +731,24 @@ const completeWorkout = async () => {
         <View style={styles.modalOverlay} />
         <View style={styles.pauseModal}>
           <Text style={styles.modalTitle}>Paused</Text>
+          
+          {/* Sound Toggle Option */}
+          <View style={styles.soundToggleContainer}>
+            <Text style={styles.soundToggleLabel}>Workout Sounds</Text>
+            <Pressable 
+              style={[styles.soundToggle, soundEnabled && styles.soundToggleActive]} 
+              onPress={() => setSoundEnabled(!soundEnabled)}
+            >
+              <View style={[styles.soundToggleSlider, soundEnabled && styles.soundToggleSliderActive]}>
+                <Ionicons 
+                  name={soundEnabled ? 'volume-high' : 'volume-mute'} 
+                  size={16} 
+                  color={soundEnabled ? COLORS.primary : '#666'} 
+                />
+              </View>
+            </Pressable>
+          </View>
+          
           <View style={styles.modalButtons}>
             <Pressable 
               style={[styles.modalButton, styles.resumeButton]} 
@@ -835,6 +987,47 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   modalButtonText: { color: 'white', fontWeight: '600', fontSize: 18 },
+  soundToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  soundToggleLabel: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+  soundToggle: {
+    width: 60,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ddd',
+    padding: 2,
+    justifyContent: 'center',
+  },
+  soundToggleActive: {
+    backgroundColor: COLORS.primary + '40',
+  },
+  soundToggleSlider: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  soundToggleSliderActive: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'white',
+  },
   content: { flex: 1 },
   contentContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 80 },
   videoContainer: { width: '100%', aspectRatio: 16/9, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
