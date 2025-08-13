@@ -1,15 +1,14 @@
 // app/index.tsx
-import 'expo-router/entry';
 import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkout } from '@/context/WorkoutContext';
-import { sampleExercises } from '@/data/sampleExercises';
 import { db } from '@/lib/firebase';
 import { GlobalStyles } from '@/theme';
 import { useRouter } from 'expo-router';
-import { doc, onSnapshot } from 'firebase/firestore';
+import 'expo-router/entry';
+import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, G, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -22,10 +21,26 @@ export default function HomeScreen() {
   const [latestRecord, setLatestRecord] = useState<{ name: string; value: number; date: Date } | null>(null);
   const [totalReps, setTotalReps] = useState(0);
   const [exercisesWithRecords, setExercisesWithRecords] = useState(0);
+  const [totalExercisesAvailable, setTotalExercisesAvailable] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const lastWorkout = workouts.find((w) => !w.permanent);
-  const totalExercisesAvailable = sampleExercises.length;
+
+  // Load total exercises count from Firestore
+  useEffect(() => {
+    const loadExercisesCount = async () => {
+      try {
+        const exercisesSnapshot = await getDocs(collection(db, 'exercises'));
+        setTotalExercisesAvailable(exercisesSnapshot.size);
+      } catch (error) {
+        console.error('Error loading exercises count:', error);
+        // Fallback to 0 if there's an error
+        setTotalExercisesAvailable(0);
+      }
+    };
+
+    loadExercisesCount();
+  }, []);
 
   // Load personal records from Firebase
   useEffect(() => {
@@ -98,14 +113,25 @@ export default function HomeScreen() {
 
   return (
     <View style={GlobalStyles.container}>
+      {/* Static Header Section */}
       <Text style={GlobalStyles.header}>Home</Text>
 
       <Pressable
-        style={GlobalStyles.startButton}
+        style={({ pressed }) => [
+          GlobalStyles.startButton,
+          pressed && styles.startButtonPressed
+        ]}
         onPress={() => router.push('/my-workouts')}
       >
         <Text style={GlobalStyles.buttonText}>Start Workout</Text>
       </Pressable>
+
+      {/* Scrollable Content Below */}
+      <ScrollView 
+        style={styles.scrollableContent} 
+        contentContainerStyle={{ paddingBottom: 20 }}
+        showsVerticalScrollIndicator={false}
+      >
 
       <Text style={GlobalStyles.sectionTitle}>Last Workout</Text>
       <Pressable 
@@ -274,25 +300,39 @@ export default function HomeScreen() {
           </Text>
         </View>
       </Pressable>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // Stats row adjustment
+  // Start button press effect
+  startButtonPressed: {
+    backgroundColor: COLORS.accent + 'DD', // Slightly more transparent
+    transform: [{ scale: 0.98 }], // Slightly smaller when pressed
+  },
+  
+  // Scrollable content area
+  scrollableContent: {
+    flex: 1,
+    marginTop: 16,
+  },
+  
+  // Stats row adjustment - moved more to the left
   statsRowAdjusted: {
-    justifyContent: 'center',
-    paddingHorizontal: '12%',
+    justifyContent: 'flex-start',
+    paddingHorizontal: '8%',
+    gap: screenWidth * 0.12, // Add gap between the stats
   },
   
   // Personal record styles - different from total stats
   recordStatValue: {
-    fontSize: screenWidth * 0.07, 
+    fontSize: screenWidth * 0.06, 
     fontWeight: '600',
     color: COLORS.accent,
   },
   dateStatValue: {
-    fontSize: screenWidth * 0.07, 
+    fontSize: screenWidth * 0.06, 
     fontWeight: '600',
     color: COLORS.accent,
   },
