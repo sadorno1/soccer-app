@@ -22,18 +22,19 @@ service cloud.firestore {
 
     /* --- Workouts: users can fully manage their own workouts --- */
     match /workouts/{workoutId} {
-      // Users can read their own workouts
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can read their own workouts, admins can read all
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
 
       // Users can create workouts for themselves
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      // Users can update their own workouts
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can update their own workouts, admins can update any workout
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Users can delete their own workouts (except permanent ones like Quick Workout)  
+      // Users can delete their own workouts (except permanent ones like Quick Workout)
+      // Admins can delete any workout (except permanent ones)  
       allow delete: if isSignedIn() && 
-        resource.data.userId == request.auth.uid && 
+        (resource.data.userId == request.auth.uid || isAdmin()) && 
         !('permanent' in resource.data && resource.data.permanent == true);
     }
 
