@@ -10,11 +10,13 @@ import {
   deleteDoc,
   deleteObject,
   doc,
+  getDoc,
   getDocs,
   getDownloadURL,
   getIdTokenResult,
   onAuthStateChanged,
   ref,
+  setDoc,
   signOut,
   storage,
   updateDoc,
@@ -313,6 +315,15 @@ export default function SettingsScreen() {
   // Manage modal filters
   const [query, setQuery] = useState('');
 
+  // User Management states
+  const [manageUsersModalVisible, setManageUsersModalVisible] = useState(false);
+  const [allowedUsers, setAllowedUsers] = useState<string[]>([]);
+  const [adminUsers, setAdminUsers] = useState<string[]>([]);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userManagementTab, setUserManagementTab] = useState<'allowed' | 'admins'>('allowed');
+
   // Available options for tag selection
   const AVAILABLE_SUBCATEGORIES = [
     'Ball Manipulation', 'Ball Striking', 'Speed of Play', 'Crossing', 
@@ -350,12 +361,27 @@ export default function SettingsScreen() {
           const token = await getIdTokenResult(firebaseUser, true);
           const adminClaim = !!token.claims.admin;
           const emailOverride = firebaseUser.email === 'samantha.adorno30@gmail.com';
-          const adminFlag = adminClaim || emailOverride;
+          
+          // Also check the database admin list
+          let dbAdmin = false;
+          try {
+            const adminUsersRef = doc(db, 'settings', 'adminUsers');
+            const adminUsersSnap = await getDoc(adminUsersRef);
+            if (adminUsersSnap.exists()) {
+              const adminEmails = adminUsersSnap.data().emails || [];
+              dbAdmin = adminEmails.includes(firebaseUser.email);
+            }
+          } catch (dbError) {
+            console.log('[Settings] Could not check database admin list:', dbError);
+          }
+          
+          const adminFlag = adminClaim || emailOverride || dbAdmin;
           setIsAdmin(adminFlag);
           console.log('[Settings] Admin check:', {
             email: firebaseUser.email,
             adminClaim,
             emailOverride,
+            dbAdmin,
             isAdmin: adminFlag,
           });
         } catch {
@@ -643,14 +669,6 @@ export default function SettingsScreen() {
       
       // Sync the updated exercise across all workouts (admin updates affect all users)
       const updatedExercise = { id: selectedExercise.id, ...exerciseData };
-      
-      console.log('🔧 ========== SETTINGS: EXERCISE UPDATE ==========');
-      console.log('👑 Admin Status:', isAdmin);
-      console.log('👤 Current User:', auth.currentUser?.email);
-      console.log('🎯 Exercise being updated:', updatedExercise.name);
-      console.log('🔄 Calling syncExerciseUpdates with isAdmin:', isAdmin);
-      console.log('=============================================');
-      
       await syncExerciseUpdates(updatedExercise, isAdmin);
       
       Alert.alert('Success', 'Exercise updated successfully');
@@ -723,6 +741,132 @@ export default function SettingsScreen() {
     setRefreshing(false);
   };
 
+  // User Management Functions
+  const loadUserLists = async () => {
+    try {
+      setLoadingUsers(true);
+      
+      // Load allowed users list
+      const allowedUsersRef = doc(db, 'settings', 'allowedUsers');
+      const allowedUsersSnap = await getDoc(allowedUsersRef);
+      if (allowedUsersSnap.exists()) {
+        setAllowedUsers(allowedUsersSnap.data().emails || []);
+      } else {
+        // Create default allowed users list with current admin
+        const defaultAllowed = [user?.email || ''].filter(Boolean);
+        await setDoc(allowedUsersRef, { emails: defaultAllowed });
+        setAllowedUsers(defaultAllowed);
+      }
+      
+      // Load admin users list
+      const adminUsersRef = doc(db, 'settings', 'adminUsers');
+      const adminUsersSnap = await getDoc(adminUsersRef);
+      if (adminUsersSnap.exists()) {
+        setAdminUsers(adminUsersSnap.data().emails || []);
+      } else {
+        // Create default admin users list with current admin
+        const defaultAdmins = [user?.email || ''].filter(Boolean);
+        await setDoc(adminUsersRef, { emails: defaultAdmins });
+        setAdminUsers(defaultAdmins);
+      }
+    } catch (error) {
+      console.error('Error loading user lists:', error);
+      Alert.alert('Error', 'Failed to load user lists');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const addAllowedUser = async () => {
+    const email = newUserEmail.trim().toLowerCase();
+    if (!email) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    
+    if (allowedUsers.includes(email)) {
+      Alert.alert('Error', 'User is already in the allowed list');
+      return;
+    }
+
+    try {
+      const updatedList = [...allowedUsers, email];
+      await updateDoc(doc(db, 'settings', 'allowedUsers'), { emails: updatedList });
+      setAllowedUsers(updatedList);
+      setNewUserEmail('');
+      Alert.alert('Success', 'User added to allowed list');
+    } catch (error) {
+      console.error('Error adding allowed user:', error);
+      Alert.alert('Error', 'Failed to add user');
+    }
+  };
+
+  const removeAllowedUser = async (email: string) => {
+    try {
+      const updatedList = allowedUsers.filter(e => e !== email);
+      await updateDoc(doc(db, 'settings', 'allowedUsers'), { emails: updatedList });
+      setAllowedUsers(updatedList);
+      Alert.alert('Success', 'User removed from allowed list');
+    } catch (error) {
+      console.error('Error removing allowed user:', error);
+      Alert.alert('Error', 'Failed to remove user');
+    }
+  };
+
+  const addAdminUser = async () => {
+    const email = newAdminEmail.trim().toLowerCase();
+    if (!email) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    
+    if (adminUsers.includes(email)) {
+      Alert.alert('Error', 'User is already an admin');
+      return;
+    }
+
+    try {
+      const updatedList = [...adminUsers, email];
+      await updateDoc(doc(db, 'settings', 'adminUsers'), { emails: updatedList });
+      setAdminUsers(updatedList);
+      setNewAdminEmail('');
+      Alert.alert('Success', 'User added as admin');
+    } catch (error) {
+      console.error('Error adding admin user:', error);
+      Alert.alert('Error', 'Failed to add admin');
+    }
+  };
+
+  const removeAdminUser = async (email: string) => {
+    if (adminUsers.length <= 1) {
+      Alert.alert('Error', 'Cannot remove the last admin. There must be at least one admin.');
+      return;
+    }
+
+    Alert.alert(
+      'Remove Admin',
+      `Are you sure you want to remove ${email} as an admin?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const updatedList = adminUsers.filter(e => e !== email);
+              await updateDoc(doc(db, 'settings', 'adminUsers'), { emails: updatedList });
+              setAdminUsers(updatedList);
+              Alert.alert('Success', 'Admin removed successfully');
+            } catch (error) {
+              console.error('Error removing admin user:', error);
+              Alert.alert('Error', 'Failed to remove admin');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // Filtered list for Manage modal
   const filtered = useMemo(() => {
     let list = exercises;
@@ -766,22 +910,32 @@ export default function SettingsScreen() {
             <>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                 <TouchableOpacity
-                  style={[GlobalStyles.startButton, { backgroundColor: COLORS.accent, flexGrow: 1 }]}
+                  style={[GlobalStyles.startButton, { backgroundColor: COLORS.accent, flex: 1 }]}
                   onPress={() => setAddExerciseModalVisible(true)}
                 >
                   <Text style={GlobalStyles.buttonText}>Add Exercise</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[GlobalStyles.startButton, { backgroundColor: COLORS.accent, flexGrow: 1 }]}
+                  style={[GlobalStyles.startButton, { backgroundColor: COLORS.accent, flex: 1 }]}
                   onPress={() => {
                     setManageExercisesModalVisible(true);
                     loadExercises();
                   }}
                 >
-                  <Text style={GlobalStyles.buttonText}>Manage</Text>
+                  <Text style={GlobalStyles.buttonText}>Manage Exercises</Text>
                 </TouchableOpacity>
               </View>
+
+              <TouchableOpacity
+                style={[GlobalStyles.startButton, { backgroundColor: COLORS.accent, marginTop: 10 }]}
+                onPress={() => {
+                  setManageUsersModalVisible(true);
+                  loadUserLists();
+                }}
+              >
+                <Text style={GlobalStyles.buttonText}>Manage Users</Text>
+              </TouchableOpacity>
             </>
           )}
 
@@ -1329,6 +1483,149 @@ export default function SettingsScreen() {
                     </View>
                   </ScrollView>
               </View>
+          </Modal>
+
+          {/* ───────── User Management Modal ───────── */}
+          <Modal visible={manageUsersModalVisible} transparent animationType="slide">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+              <View style={{ backgroundColor: COLORS.surface, borderRadius: 12, padding: 20, maxHeight: '85%', flex: 1 }}>
+                <Text style={[GlobalStyles.header, { marginBottom: 16, textAlign: 'center' }]}>User Management</Text>
+
+                {/* Tab Selector */}
+                <View style={{ flexDirection: 'row', marginBottom: 16, backgroundColor: COLORS.textMuted + '20', borderRadius: 8, padding: 4 }}>
+                  <TouchableOpacity
+                    style={[
+                      { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
+                      userManagementTab === 'allowed' && { backgroundColor: COLORS.accent }
+                    ]}
+                    onPress={() => setUserManagementTab('allowed')}
+                  >
+                    <Text style={[
+                      { fontSize: 14, fontWeight: '600' },
+                      { color: userManagementTab === 'allowed' ? 'white' : COLORS.text }
+                    ]}>
+                      Allowed Users ({allowedUsers.length})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      { flex: 1, paddingVertical: 8, borderRadius: 6, alignItems: 'center' },
+                      userManagementTab === 'admins' && { backgroundColor: COLORS.accent }
+                    ]}
+                    onPress={() => setUserManagementTab('admins')}
+                  >
+                    <Text style={[
+                      { fontSize: 14, fontWeight: '600' },
+                      { color: userManagementTab === 'admins' ? 'white' : COLORS.text }
+                    ]}>
+                      Admins ({adminUsers.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {loadingUsers ? (
+                  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={COLORS.accent} />
+                    <Text style={[GlobalStyles.email, { marginTop: 10 }]}>Loading users...</Text>
+                  </View>
+                ) : (
+                  <>
+                    {/* Add New User Section */}
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={{ color: COLORS.text, fontSize: 14, marginBottom: 8, fontWeight: '600' }}>
+                        Add New {userManagementTab === 'allowed' ? 'Allowed User' : 'Admin'}
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TextInput
+                          style={[GlobalStyles.input, { flex: 1 }]}
+                          placeholder="Enter email address"
+                          placeholderTextColor={COLORS.textMuted}
+                          value={userManagementTab === 'allowed' ? newUserEmail : newAdminEmail}
+                          onChangeText={userManagementTab === 'allowed' ? setNewUserEmail : setNewAdminEmail}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                        />
+                        <TouchableOpacity
+                          style={[GlobalStyles.startButton, { paddingHorizontal: 16 }]}
+                          onPress={userManagementTab === 'allowed' ? addAllowedUser : addAdminUser}
+                        >
+                          <Text style={GlobalStyles.buttonText}>Add</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Users List */}
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: COLORS.text, fontSize: 14, marginBottom: 8, fontWeight: '600' }}>
+                        Current {userManagementTab === 'allowed' ? 'Allowed Users' : 'Admins'}
+                      </Text>
+                      <FlatList
+                        data={userManagementTab === 'allowed' ? allowedUsers : adminUsers}
+                        keyExtractor={(item) => item}
+                        style={{ flex: 1 }}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                          <Text style={{ color: COLORS.textMuted, textAlign: 'center', padding: 20, fontStyle: 'italic' }}>
+                            No {userManagementTab === 'allowed' ? 'allowed users' : 'admins'} found
+                          </Text>
+                        }
+                        renderItem={({ item: email }) => (
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingVertical: 12,
+                            paddingHorizontal: 4,
+                            borderBottomWidth: 1,
+                            borderBottomColor: COLORS.textMuted + '15'
+                          }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: COLORS.text, fontSize: 16 }}>{email}</Text>
+                              {email === user?.email && (
+                                <Text style={{ color: COLORS.accent, fontSize: 12, fontStyle: 'italic' }}>
+                                  (You)
+                                </Text>
+                              )}
+                            </View>
+                            <TouchableOpacity
+                              style={{
+                                backgroundColor: COLORS.error,
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 6
+                              }}
+                              onPress={() => {
+                                if (userManagementTab === 'allowed') {
+                                  Alert.alert(
+                                    'Remove User',
+                                    `Remove ${email} from allowed users?`,
+                                    [
+                                      { text: 'Cancel', style: 'cancel' },
+                                      { text: 'Remove', style: 'destructive', onPress: () => removeAllowedUser(email) }
+                                    ]
+                                  );
+                                } else {
+                                  removeAdminUser(email);
+                                }
+                              }}
+                            >
+                              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Remove</Text>
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                      />
+                    </View>
+                  </>
+                )}
+
+                <TouchableOpacity
+                  style={[GlobalStyles.startButton, { backgroundColor: COLORS.textMuted, marginTop: 16 }]}
+                  onPress={() => setManageUsersModalVisible(false)}
+                >
+                  <Text style={GlobalStyles.buttonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </Modal>
         </>
       ) : (

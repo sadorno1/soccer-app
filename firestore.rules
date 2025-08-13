@@ -7,7 +7,10 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.admin == true ||
-        request.auth.token.email == 'samantha.adorno30@gmail.com'
+        request.auth.token.email == 'samantha.adorno30@gmail.com' ||
+        // Check if user email is in the database admin list
+        (exists(/databases/$(database)/documents/settings/adminUsers) &&
+         request.auth.token.email in get(/databases/$(database)/documents/settings/adminUsers).data.emails)
       );
     }
 
@@ -32,6 +35,12 @@ service cloud.firestore {
       allow delete: if isSignedIn() && 
         resource.data.userId == request.auth.uid && 
         !('permanent' in resource.data && resource.data.permanent == true);
+    }
+
+    /* --- User Management Settings: public read for auth checks, write admin-only --- */
+    match /settings/{document} {
+      allow read: if true; // Allow anyone to read for auth checks (before they're signed in)
+      allow write: if isAdmin();
     }
 
     /* --- Workout sessions: users can read/write their own record doc --- */

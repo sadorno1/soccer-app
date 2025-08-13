@@ -1,5 +1,5 @@
 import { COLORS } from '@/constants/Colors';
-import { auth } from '@/lib/firebase';
+import { auth, checkUserAllowed } from '@/lib/firebase';
 import { GlobalStyles, SIZES, moderateScale, verticalScale } from '@/theme';
 import { useRouter } from 'expo-router';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -30,9 +30,26 @@ export default function LoginScreen({ navigation }: any) {
     if (!email || !password) return setError('Enter both email and password');
     setLoading(true);
     try {
+      // First check if the user is allowed to access the app
+      const isAllowed = await checkUserAllowed(email.trim());
+      if (!isAllowed) {
+        setError('Email not authorized. Contact an administrator to get access.');
+        return;
+      }
+
+      // If user is allowed, proceed with sign in
       await signInWithEmailAndPassword(auth, email.trim(), password);
     } catch (e: any) {
-      setError(e.message);
+      // Handle Firebase auth errors
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+        setError('Invalid email or password');
+      } else if (e.code === 'auth/invalid-email') {
+        setError('Invalid email address');
+      } else if (e.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Try again later.');
+      } else {
+        setError(e.message);
+      }
     } finally {
       setLoading(false);
     }

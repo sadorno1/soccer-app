@@ -3,7 +3,7 @@ import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 
 import { COLORS } from '@/constants/Colors';
-import { auth } from '@/lib/firebase';
+import { auth, checkUserAllowed } from '@/lib/firebase';
 import { GlobalStyles, SIZES, moderateScale, verticalScale } from '@/theme';
 import { Link, useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -43,10 +43,28 @@ export default function SignupScreen() {
 
   try {
     setLoading(true);
+    
+    // First check if the user is allowed to access the app
+    const isAllowed = await checkUserAllowed(email.trim());
+    if (!isAllowed) {
+      setError('Email not authorized. Contact an administrator to get access.');
+      return;
+    }
+
+    // If user is allowed, proceed with account creation
     await createUserWithEmailAndPassword(auth, email.trim(), password);
     router.replace('/login'); 
   } catch (e: any) {
-    setError(e.message);
+    // Handle Firebase auth errors
+    if (e.code === 'auth/email-already-in-use') {
+      setError('Email already in use. Try logging in instead.');
+    } else if (e.code === 'auth/invalid-email') {
+      setError('Invalid email address');
+    } else if (e.code === 'auth/weak-password') {
+      setError('Password should be at least 6 characters');
+    } else {
+      setError(e.message);
+    }
   } finally {
     setLoading(false);
   }

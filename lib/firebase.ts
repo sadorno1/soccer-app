@@ -77,6 +77,48 @@ try {
   }
 }
 
+// Helper function to check if user is in allowed users list
+export const checkUserAllowed = async (email: string): Promise<boolean> => {
+  try {
+    const trimmedEmail = email.toLowerCase().trim();
+    
+    // First check if user is an admin (admins are automatically allowed)
+    if (trimmedEmail === 'samantha.adorno30@gmail.com') {
+      return true;
+    }
+    
+    // Check admin users list in database
+    try {
+      const adminUsersRef = doc(db, 'settings', 'adminUsers');
+      const adminUsersSnap = await getDoc(adminUsersRef);
+      if (adminUsersSnap.exists()) {
+        const adminEmails = adminUsersSnap.data().emails || [];
+        if (adminEmails.includes(trimmedEmail)) {
+          return true;
+        }
+      }
+    } catch (adminError) {
+      console.log('Could not check admin list:', adminError);
+    }
+    
+    // If not an admin, check the allowed users list
+    const allowedUsersRef = doc(db, 'settings', 'allowedUsers');
+    const allowedUsersSnap = await getDoc(allowedUsersRef);
+    
+    if (allowedUsersSnap.exists()) {
+      const allowedEmails = allowedUsersSnap.data().emails || [];
+      return allowedEmails.includes(trimmedEmail);
+    }
+    
+    // If no allowed users list exists, deny access by default
+    return false;
+  } catch (error) {
+    console.error('Error checking allowed users:', error);
+    // On error, deny access for security
+    return false;
+  }
+};
+
 export { auth };
 export const db = getFirestore(app);
 export const storage = getStorage(app);
