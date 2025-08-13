@@ -6,15 +6,19 @@ import { getApp, getApps, initializeApp } from 'firebase/app';
 
 // Firebase auth - React Native compatible imports
 import {
+  Auth,
   createUserWithEmailAndPassword,
   getAuth,
   getIdTokenResult,
+  initializeAuth,
+  getReactNativePersistence,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   User
 } from 'firebase/auth';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase firestore
 import {
@@ -58,8 +62,22 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Firebase Auth with automatic persistence
-export const auth = getAuth(app);
+// Initialize Firebase Auth with explicit React Native persistence
+let auth: Auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+  });
+} catch (error: any) {
+  // If auth is already initialized, get the existing instance
+  if (error.code === 'auth/already-initialized') {
+    auth = getAuth(app);
+  } else {
+    throw error;
+  }
+}
+
+export { auth };
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
