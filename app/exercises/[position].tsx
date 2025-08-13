@@ -83,8 +83,9 @@ export default function PositionExerciseScreen() {
   /* ---------- when user taps an exercise ---------- */
   const handleAdd = (exercise: FirestoreExercise) => {
     if (workoutId) {
-      // Build the exact shape expected by WorkoutContext (without id)
-      const exerciseForWorkout: Omit<WorkoutExercise, 'id'> = {
+      // Build the complete exercise object with the original ID for sync functionality
+      const exerciseForWorkout: WorkoutExercise = {
+        id: exercise.id, // Keep the original ID for sync
         name: exercise.name!,
         subcategory: exercise.subcategory!,
         positionCategory: exercise.positionCategory || [],

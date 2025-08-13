@@ -5,20 +5,20 @@ import 'react-native-url-polyfill/auto';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 
 // Firebase auth - React Native compatible imports
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Auth,
   createUserWithEmailAndPassword,
   getAuth,
   getIdTokenResult,
-  initializeAuth,
   getReactNativePersistence,
+  initializeAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   User
 } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Firebase firestore
 import {

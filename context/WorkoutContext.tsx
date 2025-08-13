@@ -1,24 +1,24 @@
 // context/WorkoutContext.tsx
 import { db } from '@/lib/firebase';
 import {
-  addDoc,
-  arrayRemove,
-  arrayUnion,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  limit,
-  onSnapshot,
-  query,
-  updateDoc,
-  where
+    addDoc,
+    arrayRemove,
+    arrayUnion,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    limit,
+    onSnapshot,
+    query,
+    updateDoc,
+    where
 } from 'firebase/firestore';
 import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState
+    createContext,
+    useContext,
+    useEffect,
+    useState
 } from 'react';
 import { useAuth } from './AuthContext';
 
@@ -60,7 +60,7 @@ interface WorkoutContextType {
   deleteAllWorkouts: () => Promise<void>;
   setActiveWorkout: (id: string) => void;
   clearActiveWorkout: () => void;
-  addExerciseToWorkout: (workoutId: string, exercise: Omit<Exercise, 'id'>) => Promise<void>;
+  addExerciseToWorkout: (workoutId: string, exercise: Exercise) => Promise<void>;
   deleteExerciseFromWorkout: (workoutId: string, exerciseId: string) => Promise<void>;
   completeWorkoutSession: (workoutId: string) => Promise<void>;
   updateExerciseInWorkout: (
@@ -68,6 +68,8 @@ interface WorkoutContextType {
     exerciseId: string, 
     updates: Partial<Omit<Exercise, 'id'>>
   ) => Promise<void>;
+  syncExerciseUpdates: (updatedExercise: Exercise) => Promise<void>;
+  syncExerciseDeletes: (deletedExercise: Exercise) => Promise<void>;
 }
 
 const WorkoutContext = createContext<WorkoutContextType>({
@@ -82,6 +84,8 @@ const WorkoutContext = createContext<WorkoutContextType>({
   deleteExerciseFromWorkout: async () => {},
   completeWorkoutSession: async () => {},
   updateExerciseInWorkout: async () => {},
+  syncExerciseUpdates: async () => {},
+  syncExerciseDeletes: async () => {},
 });
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
@@ -203,18 +207,19 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addExerciseToWorkout = async (workoutId: string, exercise: Omit<Exercise, 'id'>) => {
+  const addExerciseToWorkout = async (workoutId: string, exercise: Exercise) => {
     try {
       const workout = workouts.find(w => w.id === workoutId);
       if (!workout) throw new Error('Workout not found');
 
-      const exerciseWithId = {
+      // Keep the original exercise ID for sync functionality
+      const exerciseForWorkout = {
         ...exercise,
-        id: Date.now().toString(),
+        // Don't change the ID - keep the original for sync
       };
 
       const updateData = {
-        exercises: arrayUnion(exerciseWithId)
+        exercises: arrayUnion(exerciseForWorkout)
       };
 
       await updateDoc(doc(db, 'workouts', workoutId), updateData);
@@ -287,30 +292,99 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   };
 
   const completeWorkoutSession = async (workoutId: string) => {
-       try {
-    const workout = workouts.find(w => w.id === workoutId);
-    if (!workout) throw new Error('Workout not found');
+    try {
+      const workout = workouts.find(w => w.id === workoutId);
+      if (!workout) throw new Error('Workout not found');
 
-    // Build a type-safe update payload
-    const updates: {
-      lastCompleted: Date;
-      exercises?: Exercise[];   // optional – only set for Quick
-    } = {
-      lastCompleted: new Date(),
-    };
+      // Build a type-safe update payload
+      const updates: {
+        lastCompleted: Date;
+        exercises?: Exercise[];   // optional – only set for Quick
+      } = {
+        lastCompleted: new Date(),
+      };
 
-    if (workout.tag === 'Quick') {
-      updates.exercises = [];   // clear the list for Quick workouts
+      if (workout.tag === 'Quick') {
+        updates.exercises = [];   // clear the list for Quick workouts
+      }
+
+      await updateDoc(doc(db, 'workouts', workoutId), updates);
+
+      setActiveWorkoutId(null);   // clear any local "active" flag
+    } catch (err) {
+      console.error('Error completing workout session:', err);
+      throw err;
     }
+  };
 
-    await updateDoc(doc(db, 'workouts', workoutId), updates);
+  // Sync exercise updates across all workouts
+  const syncExerciseUpdates = async (updatedExercise: Exercise) => {
+    if (!user) return;
+    
+    try {
+      console.log('Syncing exercise updates for:', updatedExercise.id, updatedExercise.name);
+      console.log('Available workouts:', workouts.length);
+      
+      // Match by exercise ID (works for new workouts where exercises keep their original IDs)
+      const userWorkouts = workouts.filter(workout => 
+        workout.exercises.some(ex => ex.id === updatedExercise.id)
+      );
 
-    setActiveWorkoutId(null);   // clear any local “active” flag
-  } catch (err) {
-    console.error('Error completing workout session:', err);
-    throw err;
-  }
-};
+      console.log('Found workouts with matching exercises:', userWorkouts.length);
+      
+      if (userWorkouts.length > 0) {
+        console.log('Matching workout names:', userWorkouts.map(w => w.name));
+      }
+
+      // Update each workout that contains this exercise
+      for (const workout of userWorkouts) {
+        const exerciseIndex = workout.exercises.findIndex(ex => ex.id === updatedExercise.id);
+        if (exerciseIndex !== -1) {
+          const oldExercise = workout.exercises[exerciseIndex];
+          console.log('Updating exercise in workout:', workout.name);
+
+          // Update in Firestore using array operations for consistency
+          await updateDoc(doc(db, 'workouts', workout.id), {
+            exercises: arrayRemove(oldExercise)
+          });
+          await updateDoc(doc(db, 'workouts', workout.id), {
+            exercises: arrayUnion(updatedExercise)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing exercise updates:', error);
+    }
+  };
+
+  // Sync exercise deletions across all workouts
+  const syncExerciseDeletes = async (deletedExercise: Exercise) => {
+    if (!user) return;
+    
+    try {
+      console.log('Syncing exercise deletions for:', deletedExercise.id, deletedExercise.name);
+      
+      // Match by exercise ID
+      const userWorkouts = workouts.filter(workout => 
+        workout.exercises.some(ex => ex.id === deletedExercise.id)
+      );
+
+      console.log('Found workouts with matching exercises:', userWorkouts.length);
+
+      // Remove the exercise from each workout that contains it
+      for (const workout of userWorkouts) {
+        const exerciseToRemove = workout.exercises.find(ex => ex.id === deletedExercise.id);
+        if (exerciseToRemove) {
+          console.log(`Removing exercise from workout "${workout.name}"`);
+          await updateDoc(doc(db, 'workouts', workout.id), {
+            exercises: arrayRemove(exerciseToRemove)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing exercise deletions:', error);
+    }
+  };
 
   return (
     <WorkoutContext.Provider value={{
@@ -324,7 +398,9 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       addExerciseToWorkout,
       deleteExerciseFromWorkout,
       completeWorkoutSession,
-      updateExerciseInWorkout
+      updateExerciseInWorkout,
+      syncExerciseUpdates,
+      syncExerciseDeletes,
     }}>
       {children}
     </WorkoutContext.Provider>

@@ -1,6 +1,7 @@
 //settings 
 // SETTINGS (drop-in replacement)
 import { COLORS } from '@/constants/Colors';
+import { useWorkout } from '@/context/WorkoutContext';
 import {
   addDoc,
   auth,
@@ -295,6 +296,7 @@ function VideoUploadField({
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { syncExerciseUpdates, syncExerciseDeletes } = useWorkout();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -638,6 +640,11 @@ export default function SettingsScreen() {
       };
 
       await updateDoc(doc(db, 'exercises', selectedExercise.id), exerciseData);
+      
+      // Sync the updated exercise across all workouts
+      const updatedExercise = { id: selectedExercise.id, ...exerciseData };
+      await syncExerciseUpdates(updatedExercise);
+      
       Alert.alert('Success', 'Exercise updated successfully');
       setEditExerciseModalVisible(false);
       await loadExercises();
@@ -650,6 +657,13 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteExercise = async (exerciseId: string) => {
+    // Find the exercise to get its details for syncing
+    const exerciseToDelete = exercises.find(ex => ex.id === exerciseId);
+    if (!exerciseToDelete) {
+      Alert.alert('Error', 'Exercise not found');
+      return;
+    }
+
     Alert.alert('Delete Exercise', 'Are you sure you want to delete this exercise?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -658,6 +672,10 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'exercises', exerciseId));
+            
+            // Sync the exercise deletion across all workouts
+            await syncExerciseDeletes(exerciseToDelete);
+            
             Alert.alert('Success', 'Exercise deleted successfully');
             await loadExercises();
           } catch (e: any) {
