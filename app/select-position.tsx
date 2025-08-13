@@ -25,17 +25,7 @@ export default function SelectPositionScreen() {
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.headerRow}>
-         <Pressable onPress={() => router.back()}
-                                   style={({ pressed }) => [
-                           GlobalStyles.add_back_Button,
-                           { 
-                             transform: [{ scale: pressed ? 0.95 : 1 }],
-                             shadowOpacity: pressed ? 0.3 : 0.2,
-                           }
-                         ]}
-                       >
-                         <Text style={GlobalStyles.add_backText}>{'←'}</Text>
-                       </Pressable>
+         
       <Text style={GlobalStyles.title}>Select Position</Text>
         
       </View>
