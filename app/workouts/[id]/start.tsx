@@ -1,6 +1,7 @@
 import { COLORS } from '@/constants/Colors'
 import { useWorkout } from '@/context/WorkoutContext'
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Audio } from 'expo-av'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { VideoView, useVideoPlayer } from 'expo-video'
@@ -48,6 +49,34 @@ export default function StartWorkoutScreen() {
   // Audio setup for beep sounds
   const [beepSound, setBeepSound] = useState<Audio.Sound | null>(null)
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true)
+  
+  // Load sound preference from storage
+  useEffect(() => {
+    const loadSoundPreference = async () => {
+      try {
+        const savedPreference = await AsyncStorage.getItem('workoutSoundEnabled')
+        if (savedPreference !== null) {
+          setSoundEnabled(JSON.parse(savedPreference))
+          console.log('Loaded sound preference:', JSON.parse(savedPreference))
+        }
+      } catch (error) {
+        console.error('Error loading sound preference:', error)
+      }
+    }
+    
+    loadSoundPreference()
+  }, [])
+  
+  // Save sound preference when it changes
+  const toggleSound = async (newValue: boolean) => {
+    try {
+      setSoundEnabled(newValue)
+      await AsyncStorage.setItem('workoutSoundEnabled', JSON.stringify(newValue))
+      console.log('Saved sound preference:', newValue)
+    } catch (error) {
+      console.error('Error saving sound preference:', error)
+    }
+  }
   
   // Initialize beep sound
   useEffect(() => {
@@ -737,7 +766,7 @@ const completeWorkout = async () => {
             <Text style={styles.soundToggleLabel}>Workout Sounds</Text>
             <Pressable 
               style={[styles.soundToggle, soundEnabled && styles.soundToggleActive]} 
-              onPress={() => setSoundEnabled(!soundEnabled)}
+              onPress={() => toggleSound(!soundEnabled)}
             >
               <View style={[styles.soundToggleSlider, soundEnabled && styles.soundToggleSliderActive]}>
                 <Ionicons 
