@@ -16,6 +16,7 @@ import {
   getIdTokenResult,
   onAuthStateChanged,
   ref,
+  sendPasswordResetEmail,
   setDoc,
   signOut,
   storage,
@@ -31,6 +32,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Modal,
   RefreshControl,
   ScrollView,
@@ -324,6 +326,9 @@ export default function SettingsScreen() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userManagementTab, setUserManagementTab] = useState<'allowed' | 'admins'>('allowed');
 
+  // Profile Management states
+  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false);
+
   // Available options for tag selection
   const AVAILABLE_SUBCATEGORIES = [
     'Ball Manipulation', 'Ball Striking', 'Speed of Play', 'Crossing', 
@@ -389,6 +394,7 @@ export default function SettingsScreen() {
           setIsAdmin(false);
         }
       } else {
+        // Clear profile data when no user
         console.log('[Settings] No user signed in, isAdmin = false');
         setIsAdmin(false);
       }
@@ -400,6 +406,45 @@ export default function SettingsScreen() {
   const handleSignOut = async () => {
     await signOut(auth);
     router.replace('/login');
+  };
+
+  /* ───────────── Profile Management Functions ───────────── */
+
+  const handleChangePassword = async () => {
+    if (!user?.email) {
+      Alert.alert('Error', 'No email associated with this account');
+      return;
+    }
+
+    Alert.alert(
+      'Change Password',
+      'A password reset link will be sent to your email address. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Reset Link',
+          onPress: async () => {
+            try {
+              await sendPasswordResetEmail(auth, user.email!);
+              Alert.alert('Success', 'Password reset email sent! Check your inbox.');
+              setChangePasswordModalVisible(false);
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to send password reset email');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Helper function to get display name from email
+  const getDisplayNameFromEmail = (email: string | null) => {
+    if (!email) return 'User';
+    const namePart = email.split('@')[0];
+    // Convert underscores/dots to spaces and capitalize each word
+    return namePart
+      .replace(/[._]/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase());
   };
 
   /* ───────────── Add / Edit Forms Helpers ───────────── */
@@ -903,8 +948,94 @@ export default function SettingsScreen() {
 
       {user ? (
         <>
-          <Text style={GlobalStyles.email}>Logged in as: {user.email}</Text>
-          <Text style={GlobalStyles.email}>Admin: {isAdmin ? 'Yes' : 'No'}</Text>
+          {/* Profile Section */}
+          <View style={{ 
+            backgroundColor: COLORS.surface, 
+            borderRadius: 12, 
+            padding: 20, 
+            marginBottom: 16,
+            alignItems: 'center' 
+          }}>
+            {/* Profile Picture */}
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: COLORS.textMuted + '20',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 12,
+              overflow: 'hidden',
+              borderWidth: 2,
+              borderColor: COLORS.accent + '30'
+            }}>
+              {user.photoURL ? (
+                <Image 
+                  source={{ uri: user.photoURL }} 
+                  style={{ width: '100%', height: '100%' }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={{ 
+                  fontSize: 32, 
+                  color: COLORS.accent,
+                  fontWeight: 'bold' 
+                }}>
+                  {user.email?.charAt(0).toUpperCase() || '?'}
+                </Text>
+              )}
+            </View>
+
+            {/* Display Name */}
+            <Text style={{ 
+              color: COLORS.text, 
+              fontSize: 20, 
+              fontWeight: '600',
+              marginBottom: 4
+            }}>
+              {getDisplayNameFromEmail(user.email)}
+            </Text>
+
+            {/* Email */}
+            <Text style={{ 
+              color: COLORS.textMuted, 
+              fontSize: 14,
+              marginBottom: 12
+            }}>
+              {user.email}
+            </Text>
+
+            {/* Admin Badge */}
+            {isAdmin && (
+              <View style={{
+                backgroundColor: COLORS.accent + '20',
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: COLORS.accent + '50',
+                marginBottom: 12
+              }}>
+                <Text style={{ color: COLORS.accent, fontSize: 12, fontWeight: '600' }}>
+                  ADMIN
+                </Text>
+              </View>
+            )}
+
+            {/* Profile Actions */}
+            <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <TouchableOpacity
+                style={[GlobalStyles.startButton, { 
+                  backgroundColor: COLORS.textMuted, 
+                  flex: 1,
+                  minWidth: 120
+                }]}
+                onPress={handleChangePassword}
+              >
+                <Text style={GlobalStyles.buttonText}>Change Password</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           {isAdmin && (
             <>

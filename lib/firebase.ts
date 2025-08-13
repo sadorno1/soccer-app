@@ -17,6 +17,7 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updateProfile,
   User
 } from 'firebase/auth';
 
@@ -127,7 +128,7 @@ export const storage = getStorage(app);
 export {
   createUserWithEmailAndPassword, getIdTokenResult, onAuthStateChanged,
   sendPasswordResetEmail, signInWithEmailAndPassword,
-  signOut, User
+  signOut, updateProfile, User
 };
 
 // Re-export Firestore functions for convenience
