@@ -1,16 +1,50 @@
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getApps, getApp, initializeApp } from 'firebase/app';
+// Firebase core - use specific imports for React Native compatibility
+import { getApp, getApps, initializeApp } from 'firebase/app';
 
-// RN-specific Auth build (exports getReactNativePersistence)
+// Firebase auth - React Native compatible imports
 import {
-  initializeAuth,
-  getReactNativePersistence,
+  createUserWithEmailAndPassword,
+  getAuth,
+  getIdTokenResult,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  User
 } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-import { getFirestore } from 'firebase/firestore';
+
+// Firebase firestore
+import {
+  addDoc,
+  arrayRemove,
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore,
+  limit,
+  onSnapshot,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch
+} from 'firebase/firestore';
+
+// Firebase storage
+import {
+  deleteObject,
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes
+} from 'firebase/storage';
+
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -24,9 +58,29 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
-
+// Firebase Auth with automatic persistence
+export const auth = getAuth(app);
 export const db = getFirestore(app);
-export { app };
+export const storage = getStorage(app);
+
+// Re-export auth functions for convenience
+export {
+  createUserWithEmailAndPassword, getIdTokenResult, onAuthStateChanged,
+  sendPasswordResetEmail, signInWithEmailAndPassword,
+  signOut, User
+};
+
+// Re-export Firestore functions for convenience
+  export {
+    addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, getDoc, getDocs, limit, onSnapshot,
+    query, setDoc, updateDoc, where, writeBatch
+  };
+
+// Re-export Storage functions for convenience
+  export {
+    deleteObject, getDownloadURL, ref,
+    uploadBytes
+  };
+
+  export { app };
+

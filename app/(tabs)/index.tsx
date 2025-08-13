@@ -1,5 +1,5 @@
 // app/index.tsx
-
+import 'expo-router/entry';
 import { COLORS } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { useWorkout } from '@/context/WorkoutContext';
@@ -11,8 +11,6 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, G, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
-
-import 'expo-router/entry';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
