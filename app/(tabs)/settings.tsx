@@ -641,9 +641,17 @@ export default function SettingsScreen() {
 
       await updateDoc(doc(db, 'exercises', selectedExercise.id), exerciseData);
       
-      // Sync the updated exercise across all workouts
+      // Sync the updated exercise across all workouts (admin updates affect all users)
       const updatedExercise = { id: selectedExercise.id, ...exerciseData };
-      await syncExerciseUpdates(updatedExercise);
+      
+      console.log('🔧 ========== SETTINGS: EXERCISE UPDATE ==========');
+      console.log('👑 Admin Status:', isAdmin);
+      console.log('👤 Current User:', auth.currentUser?.email);
+      console.log('🎯 Exercise being updated:', updatedExercise.name);
+      console.log('🔄 Calling syncExerciseUpdates with isAdmin:', isAdmin);
+      console.log('=============================================');
+      
+      await syncExerciseUpdates(updatedExercise, isAdmin);
       
       Alert.alert('Success', 'Exercise updated successfully');
       setEditExerciseModalVisible(false);
@@ -673,8 +681,15 @@ export default function SettingsScreen() {
           try {
             await deleteDoc(doc(db, 'exercises', exerciseId));
             
-            // Sync the exercise deletion across all workouts
-            await syncExerciseDeletes(exerciseToDelete);
+            // Sync the exercise deletion across all workouts (admin deletions affect all users)
+            console.log('🗑️ ========== SETTINGS: EXERCISE DELETE ==========');
+            console.log('👑 Admin Status:', isAdmin);
+            console.log('👤 Current User:', auth.currentUser?.email);
+            console.log('🎯 Exercise being deleted:', exerciseToDelete.name);
+            console.log('🔄 Calling syncExerciseDeletes with isAdmin:', isAdmin);
+            console.log('=============================================');
+            
+            await syncExerciseDeletes(exerciseToDelete, isAdmin);
             
             Alert.alert('Success', 'Exercise deleted successfully');
             await loadExercises();

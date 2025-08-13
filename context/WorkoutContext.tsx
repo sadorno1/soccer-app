@@ -1,24 +1,24 @@
 // context/WorkoutContext.tsx
 import { db } from '@/lib/firebase';
 import {
-    addDoc,
-    arrayRemove,
-    arrayUnion,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    limit,
-    onSnapshot,
-    query,
-    updateDoc,
-    where
+  addDoc,
+  arrayRemove,
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  limit,
+  onSnapshot,
+  query,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useState
+  createContext,
+  useContext,
+  useEffect,
+  useState
 } from 'react';
 import { useAuth } from './AuthContext';
 
@@ -68,8 +68,8 @@ interface WorkoutContextType {
     exerciseId: string, 
     updates: Partial<Omit<Exercise, 'id'>>
   ) => Promise<void>;
-  syncExerciseUpdates: (updatedExercise: Exercise) => Promise<void>;
-  syncExerciseDeletes: (deletedExercise: Exercise) => Promise<void>;
+  syncExerciseUpdates: (updatedExercise: Exercise, isAdminUpdate?: boolean) => Promise<void>;
+  syncExerciseDeletes: (deletedExercise: Exercise, isAdminDelete?: boolean) => Promise<void>;
 }
 
 const WorkoutContext = createContext<WorkoutContextType>({
@@ -197,9 +197,11 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const deleteWorkout = async (id: string) => {
     try {
       const workout = workouts.find(w => w.id === id);
+      
       if (workout?.permanent) {
         throw new Error('Cannot delete permanent workouts');
       }
+      
       await deleteDoc(doc(db, 'workouts', id));
     } catch (error) {
       console.error('Error deleting workout:', error);
@@ -317,72 +319,211 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Sync exercise updates across all workouts
-  const syncExerciseUpdates = async (updatedExercise: Exercise) => {
+  // Sync exercise updates across all workouts (admin updates affect all users)
+  const syncExerciseUpdates = async (updatedExercise: Exercise, isAdminUpdate = false) => {
     if (!user) return;
     
     try {
-      console.log('Syncing exercise updates for:', updatedExercise.id, updatedExercise.name);
-      console.log('Available workouts:', workouts.length);
+      console.log('🔄 ========== SYNC EXERCISE UPDATES START ==========');
+      console.log('🎯 Exercise ID:', updatedExercise.id);
+      console.log('📝 Exercise Name:', updatedExercise.name);
+      console.log('👑 Is Admin Update:', isAdminUpdate);
+      console.log('👤 Current User:', user.email);
+      console.log('===============================================');
       
-      // Match by exercise ID (works for new workouts where exercises keep their original IDs)
-      const userWorkouts = workouts.filter(workout => 
-        workout.exercises.some(ex => ex.id === updatedExercise.id)
-      );
-
-      console.log('Found workouts with matching exercises:', userWorkouts.length);
-      
-      if (userWorkouts.length > 0) {
-        console.log('Matching workout names:', userWorkouts.map(w => w.name));
-      }
-
-      // Update each workout that contains this exercise
-      for (const workout of userWorkouts) {
-        const exerciseIndex = workout.exercises.findIndex(ex => ex.id === updatedExercise.id);
-        if (exerciseIndex !== -1) {
-          const oldExercise = workout.exercises[exerciseIndex];
-          console.log('Updating exercise in workout:', workout.name);
-
-          // Update in Firestore using array operations for consistency
-          await updateDoc(doc(db, 'workouts', workout.id), {
-            exercises: arrayRemove(oldExercise)
-          });
-          await updateDoc(doc(db, 'workouts', workout.id), {
-            exercises: arrayUnion(updatedExercise)
-          });
+      if (isAdminUpdate) {
+        // Admin update: sync across ALL workouts in the database
+        console.log('🌍 ADMIN MODE: Syncing across ALL users in the database');
+        
+        // Get ALL workouts and filter in JavaScript (since Firestore can't query nested object fields in arrays)
+        const allWorkoutsQuery = query(collection(db, 'workouts'));
+        const allWorkoutsSnapshot = await getDocs(allWorkoutsQuery);
+        console.log('📊 Total workouts in database:', allWorkoutsSnapshot.size);
+        
+        // Log all workout owners for debugging
+        const workoutOwners = new Set();
+        allWorkoutsSnapshot.docs.forEach(doc => {
+          const data = doc.data() as Workout;
+          workoutOwners.add(data.userId);
+        });
+        console.log('👥 Workout owners in database:', Array.from(workoutOwners));
+        
+        // Filter workouts that contain this exercise
+        const workoutsToUpdate = [];
+        for (const workoutDoc of allWorkoutsSnapshot.docs) {
+          const workoutData = workoutDoc.data() as Workout;
+          if (workoutData.exercises && workoutData.exercises.some(ex => ex.id === updatedExercise.id)) {
+            workoutsToUpdate.push({ doc: workoutDoc, data: workoutData });
+            console.log(`✅ Found matching exercise in workout "${workoutData.name}" (Owner: ${workoutData.userId})`);
+          }
         }
+        
+        console.log('🎯 Total workouts with matching exercises:', workoutsToUpdate.length);
+        
+        if (workoutsToUpdate.length === 0) {
+          console.log('⚠️ No workouts found with this exercise ID. This might be expected if no one has added this exercise to a workout yet.');
+        }
+        
+        // Update each workout
+        for (const { doc: workoutDoc, data: workoutData } of workoutsToUpdate) {
+          const exercisesToUpdate = workoutData.exercises.filter(ex => ex.id === updatedExercise.id);
+          
+          for (const oldExercise of exercisesToUpdate) {
+            console.log(`🔄 Updating exercise in workout "${workoutData.name}" for user ${workoutData.userId}`);
+            
+            await updateDoc(doc(db, 'workouts', workoutDoc.id), {
+              exercises: arrayRemove(oldExercise)
+            });
+            await updateDoc(doc(db, 'workouts', workoutDoc.id), {
+              exercises: arrayUnion(updatedExercise)
+            });
+            
+            console.log(`✅ Successfully updated exercise in "${workoutData.name}"`);
+          }
+        }
+        
+        console.log('🌍 ADMIN MODE COMPLETE: Updated all matching workouts across all users');
+      } else {
+        // Regular user update: only sync current user's workouts
+        console.log('👤 USER MODE: Syncing current user workouts only');
+        console.log('📊 Available user workouts:', workouts.length);
+        
+        const userWorkouts = workouts.filter(workout => 
+          workout.exercises.some(ex => ex.id === updatedExercise.id)
+        );
+
+        console.log('🎯 Found user workouts with matching exercises:', userWorkouts.length);
+        
+        if (userWorkouts.length > 0) {
+          console.log('📋 Matching workout names:', userWorkouts.map(w => w.name));
+        } else {
+          console.log('⚠️ No user workouts found with this exercise ID');
+        }
+
+        // Update each workout that contains this exercise
+        for (const workout of userWorkouts) {
+          const exerciseIndex = workout.exercises.findIndex(ex => ex.id === updatedExercise.id);
+          if (exerciseIndex !== -1) {
+            const oldExercise = workout.exercises[exerciseIndex];
+            console.log('🔄 Updating exercise in user workout:', workout.name);
+
+            await updateDoc(doc(db, 'workouts', workout.id), {
+              exercises: arrayRemove(oldExercise)
+            });
+            await updateDoc(doc(db, 'workouts', workout.id), {
+              exercises: arrayUnion(updatedExercise)
+            });
+            
+            console.log(`✅ Successfully updated exercise in user workout "${workout.name}"`);
+          }
+        }
+        
+        console.log('👤 USER MODE COMPLETE: Updated all matching user workouts');
       }
+      
+      console.log('🔄 ========== SYNC EXERCISE UPDATES END ==========');
     } catch (error) {
-      console.error('Error syncing exercise updates:', error);
+      console.error('❌ Error syncing exercise updates:', error);
     }
   };
 
-  // Sync exercise deletions across all workouts
-  const syncExerciseDeletes = async (deletedExercise: Exercise) => {
+  // Sync exercise deletions across all workouts (admin deletions affect all users)
+  const syncExerciseDeletes = async (deletedExercise: Exercise, isAdminDelete = false) => {
     if (!user) return;
     
     try {
-      console.log('Syncing exercise deletions for:', deletedExercise.id, deletedExercise.name);
+      console.log('🗑️ ========== SYNC EXERCISE DELETES START ==========');
+      console.log('🎯 Exercise ID:', deletedExercise.id);
+      console.log('📝 Exercise Name:', deletedExercise.name);
+      console.log('👑 Is Admin Delete:', isAdminDelete);
+      console.log('👤 Current User:', user.email);
+      console.log('===============================================');
       
-      // Match by exercise ID
-      const userWorkouts = workouts.filter(workout => 
-        workout.exercises.some(ex => ex.id === deletedExercise.id)
-      );
-
-      console.log('Found workouts with matching exercises:', userWorkouts.length);
-
-      // Remove the exercise from each workout that contains it
-      for (const workout of userWorkouts) {
-        const exerciseToRemove = workout.exercises.find(ex => ex.id === deletedExercise.id);
-        if (exerciseToRemove) {
-          console.log(`Removing exercise from workout "${workout.name}"`);
-          await updateDoc(doc(db, 'workouts', workout.id), {
-            exercises: arrayRemove(exerciseToRemove)
-          });
+      if (isAdminDelete) {
+        // Admin delete: remove from ALL workouts in the database
+        console.log('🌍 ADMIN MODE: Removing from ALL users in the database');
+        
+        // Get ALL workouts and filter in JavaScript (since Firestore can't query nested object fields in arrays)
+        const allWorkoutsQuery = query(collection(db, 'workouts'));
+        const allWorkoutsSnapshot = await getDocs(allWorkoutsQuery);
+        console.log('📊 Total workouts in database:', allWorkoutsSnapshot.size);
+        
+        // Log all workout owners for debugging
+        const workoutOwners = new Set();
+        allWorkoutsSnapshot.docs.forEach(doc => {
+          const data = doc.data() as Workout;
+          workoutOwners.add(data.userId);
+        });
+        console.log('👥 Workout owners in database:', Array.from(workoutOwners));
+        
+        // Filter workouts that contain this exercise
+        const workoutsToUpdate = [];
+        for (const workoutDoc of allWorkoutsSnapshot.docs) {
+          const workoutData = workoutDoc.data() as Workout;
+          if (workoutData.exercises && workoutData.exercises.some(ex => ex.id === deletedExercise.id)) {
+            workoutsToUpdate.push({ doc: workoutDoc, data: workoutData });
+            console.log(`✅ Found matching exercise in workout "${workoutData.name}" (Owner: ${workoutData.userId})`);
+          }
         }
+        
+        console.log('🎯 Total workouts with matching exercises:', workoutsToUpdate.length);
+        
+        if (workoutsToUpdate.length === 0) {
+          console.log('⚠️ No workouts found with this exercise ID. This might be expected if no one has added this exercise to a workout yet.');
+        }
+        
+        // Remove exercise from each workout
+        for (const { doc: workoutDoc, data: workoutData } of workoutsToUpdate) {
+          const exercisesToRemove = workoutData.exercises.filter(ex => ex.id === deletedExercise.id);
+          
+          for (const exerciseToRemove of exercisesToRemove) {
+            console.log(`🗑️ Removing exercise from workout "${workoutData.name}" for user ${workoutData.userId}`);
+            
+            await updateDoc(doc(db, 'workouts', workoutDoc.id), {
+              exercises: arrayRemove(exerciseToRemove)
+            });
+            
+            console.log(`✅ Successfully removed exercise from "${workoutData.name}"`);
+          }
+        }
+        
+        console.log('🌍 ADMIN MODE COMPLETE: Removed exercise from all matching workouts across all users');
+      } else {
+        // Regular user delete: only remove from current user's workouts
+        console.log('👤 USER MODE: Removing from current user workouts only');
+        console.log('📊 Available user workouts:', workouts.length);
+        
+        const userWorkouts = workouts.filter(workout => 
+          workout.exercises.some(ex => ex.id === deletedExercise.id)
+        );
+
+        console.log('🎯 Found user workouts with matching exercises:', userWorkouts.length);
+        
+        if (userWorkouts.length > 0) {
+          console.log('📋 Matching workout names:', userWorkouts.map(w => w.name));
+        } else {
+          console.log('⚠️ No user workouts found with this exercise ID');
+        }
+
+        // Remove the exercise from each workout that contains it
+        for (const workout of userWorkouts) {
+          const exerciseToRemove = workout.exercises.find(ex => ex.id === deletedExercise.id);
+          if (exerciseToRemove) {
+            console.log(`🗑️ Removing exercise from user workout "${workout.name}"`);
+            await updateDoc(doc(db, 'workouts', workout.id), {
+              exercises: arrayRemove(exerciseToRemove)
+            });
+            
+            console.log(`✅ Successfully removed exercise from user workout "${workout.name}"`);
+          }
+        }
+        
+        console.log('👤 USER MODE COMPLETE: Removed exercise from all matching user workouts');
       }
+      
+      console.log('🗑️ ========== SYNC EXERCISE DELETES END ==========');
     } catch (error) {
-      console.error('Error syncing exercise deletions:', error);
+      console.error('❌ Error syncing exercise deletions:', error);
     }
   };
 
