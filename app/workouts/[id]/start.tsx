@@ -859,8 +859,8 @@ const completeWorkout = async () => {
                 <Text style={styles.inputTitle}>Enter reps</Text>
                 <Text style={styles.inputSubtitle}>
                   {typeof exercise.successful_reps === 'number' && exercise.successful_reps > 0
-                    ? `Goal: ${exercise.successful_reps} successful repetitions`
-                    : 'Record your successful repetitions'}
+                    ? `Attempts for ${exercise.successful_reps} successful repetitions`
+                    : 'Number of successful repetitions'}
                 </Text>
                 {(exercise.perFoot || exercise.videoUrls?.left || exercise.videoUrls?.right) && (
                   <View style={styles.footBadge}>
