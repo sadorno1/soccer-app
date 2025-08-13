@@ -214,14 +214,29 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       const workout = workouts.find(w => w.id === workoutId);
       if (!workout) throw new Error('Workout not found');
 
-      // Keep the original exercise ID for sync functionality
-      const exerciseForWorkout = {
-        ...exercise,
-        // Don't change the ID - keep the original for sync
+      // Clean the exercise data to remove any undefined values that Firestore doesn't accept
+      const cleanExercise = {
+        id: exercise.id,
+        name: exercise.name || '',
+        subcategory: exercise.subcategory || '',
+        positionCategory: Array.isArray(exercise.positionCategory) ? exercise.positionCategory : [],
+        setup: exercise.setup || '',
+        description: exercise.description || '',
+        uses_tracking: !!exercise.uses_tracking,
+        max_is_good: exercise.max_is_good || false,
+        successful_reps: exercise.successful_reps || 0,
+        sets: exercise.sets || 1,
+        set_duration: exercise.set_duration || 0,
+        rest: exercise.rest || 60,
+        perFoot: !!exercise.perFoot,
+        videoUrls: exercise.videoUrls || {}
       };
 
+      console.log('Adding clean exercise to workout:', cleanExercise.name);
+      console.log('Clean exercise data:', JSON.stringify(cleanExercise, null, 2));
+
       const updateData = {
-        exercises: arrayUnion(exerciseForWorkout)
+        exercises: arrayUnion(cleanExercise)
       };
 
       await updateDoc(doc(db, 'workouts', workoutId), updateData);
