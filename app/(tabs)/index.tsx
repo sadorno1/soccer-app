@@ -306,26 +306,22 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Start button press effect
   startButtonPressed: {
-    backgroundColor: COLORS.accent + 'DD', // Slightly more transparent
-    transform: [{ scale: 0.98 }], // Slightly smaller when pressed
+    backgroundColor: COLORS.accent + 'DD', 
+    transform: [{ scale: 0.98 }], 
   },
   
-  // Scrollable content area
   scrollableContent: {
     flex: 1,
     marginTop: 16,
   },
   
-  // Stats row adjustment - moved more to the left
   statsRowAdjusted: {
     justifyContent: 'flex-start',
     paddingHorizontal: '8%',
-    gap: screenWidth * 0.12, // Add gap between the stats
+    gap: screenWidth * 0.12, 
   },
   
-  // Personal record styles - different from total stats
   recordStatValue: {
     fontSize: screenWidth * 0.06, 
     fontWeight: '600',
@@ -397,22 +393,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
   },
-  
-  // Legacy styles (keeping for compatibility)
-  progressBarContainer: {
-    height: screenHeight * 0.01, 
-    backgroundColor: COLORS.surface,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: screenHeight * 0.01,
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: 4,
-  },
-  
-  // Total reps section - distinctive from personal records
   totalRepsSection: {
     alignItems: 'center',
     borderTopWidth: 1,

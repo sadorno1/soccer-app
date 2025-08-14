@@ -6,25 +6,25 @@ export const COLORS = {
   textMuted: '#94A3B8',
 
   // Primary colors
-  primary: '#2563EB',  // KU-style blue
+  primary: '#2563EB',  
   accent: '#60A5FA',
 
   // Status colors
-  success: '#10B981',    // Green - for active phase
-  successLight: '#D1FAE5', // Light green - for completed sets
-  warning: '#F59E0B',    // Yellow - for ready phase
-  warningLight: '#FEF3C7', // Light yellow
-  error: '#EF4444',      // Red - for errors/end workout
-  errorLight: '#FEE2E2',  // Light red
-  info: '#3B82F6',       // Blue - for rest phase
-  infoLight: '#DBEAFE',   // Light blue
+  success: '#10B981',    
+  successLight: '#D1FAE5', 
+  warning: '#F59E0B',    
+  warningLight: '#FEF3C7', 
+  error: '#EF4444',      
+  errorLight: '#FEE2E2', 
+  info: '#3B82F6',       
+  infoLight: '#DBEAFE',   
 
   // Subcategory colors
   subcategories: {
-    finishing: '#F87171',    // red
-    receiving: '#34D399',   // green
-    centering: '#60A5FA',   // blue
-    clearances: '#FBBF24',  // yellow
+    finishing: '#F87171',    
+    receiving: '#34D399',   
+    centering: '#60A5FA',   
+    clearances: '#FBBF24', 
   },
 
   // Component-specific colors

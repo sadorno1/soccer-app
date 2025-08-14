@@ -80,12 +80,10 @@ export default function PositionExerciseScreen() {
     });
   }, [filtered]);
 
-  /* ---------- when user taps an exercise ---------- */
   const handleAdd = (exercise: FirestoreExercise) => {
     if (workoutId) {
-      // Build the complete exercise object with the original ID for sync functionality
       const exerciseForWorkout: WorkoutExercise = {
-        id: exercise.id, // Keep the original ID for sync
+        id: exercise.id, 
         name: exercise.name!,
         subcategory: exercise.subcategory!,
         positionCategory: exercise.positionCategory || [],

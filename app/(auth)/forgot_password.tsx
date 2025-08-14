@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.radius,
-    padding: SIZES.xl, // Increased padding
+    padding: SIZES.xl, 
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
@@ -147,11 +147,10 @@ const styles = StyleSheet.create({
     width: moderateScale(72),
     height: moderateScale(72),
     alignSelf: 'center',
-    marginBottom: SIZES.xl, // Increased margin
+    marginBottom: SIZES.xl,
     resizeMode: 'contain',
   },
   customInput: {
-    // Override any system styling that causes yellow highlight
     backgroundColor: COLORS.background,
     color: COLORS.text,
   },

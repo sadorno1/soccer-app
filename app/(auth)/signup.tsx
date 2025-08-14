@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: SIZES.radius,
-    padding: SIZES.xl, // Increased padding
+    padding: SIZES.xl, 
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowOffset: { width: 0, height: 4 },
@@ -189,36 +189,34 @@ const styles = StyleSheet.create({
     width: moderateScale(72),
     height: moderateScale(72),
     alignSelf: 'center',
-    marginBottom: SIZES.xl, // Increased margin
+    marginBottom: SIZES.xl, 
     resizeMode: 'contain',
   },
   customInput: {
-    // Override any system styling that causes yellow highlight
     backgroundColor: COLORS.background,
     color: COLORS.text,
-    // Force override autofill styles
     fontFamily: 'System',
     fontSize: moderateScale(16),
   },
   inputWrapper: {
-    backgroundColor: COLORS.background, // your desired BG
+    backgroundColor: COLORS.background, 
     borderRadius: SIZES.xs + SIZES.xs,
     marginBottom: verticalScale(16),
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   input: {
-    backgroundColor: 'transparent', // avoid fighting iOS highlight
+    backgroundColor: 'transparent', 
     color: COLORS.text,
-    marginBottom: 0, // Remove margin since wrapper handles it
+    marginBottom: 0, 
   },
   button: {
     backgroundColor: COLORS.primary,
     paddingVertical: verticalScale(16),
     borderRadius: SIZES.radius,
     alignItems: 'center',
-    marginBottom: SIZES.lg, // Increased margin
-    marginTop: SIZES.md, // Increased margin
+    marginBottom: SIZES.lg, 
+    marginTop: SIZES.md, 
   },
   buttonDisabled: { 
     opacity: 0.6 
@@ -226,15 +224,15 @@ const styles = StyleSheet.create({
   link: { 
     color: COLORS.primary, 
     textAlign: 'center', 
-    marginTop: SIZES.md, // Increased margin
-    marginBottom: SIZES.sm, // Added margin
+    marginTop: SIZES.md, 
+    marginBottom: SIZES.sm, 
     fontSize: SIZES.body,
     fontWeight: '600',
   },
   error: { 
     color: COLORS.error, 
     textAlign: 'center', 
-    marginBottom: SIZES.md, // Increased margin
+    marginBottom: SIZES.md, 
     fontSize: SIZES.body,
   },
   backButton: {

@@ -1,5 +1,4 @@
 //settings 
-// SETTINGS (drop-in replacement)
 import { COLORS } from '@/constants/Colors';
 import { useWorkout } from '@/context/WorkoutContext';
 import {
@@ -63,7 +62,6 @@ function LabeledNumber({
   const [textValue, setTextValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync text value when prop changes, but only when not focused
   useEffect(() => {
     if (!isFocused) {
       setTextValue(Number.isFinite(value) && value > 0 ? String(value) : '');
@@ -74,7 +72,6 @@ function LabeledNumber({
     setTextValue(text);
     const numValue = parseInt(text);
     if (text === '' || isNaN(numValue)) {
-      // Don't call onChange immediately when empty - let user finish typing
       if (text !== '') {
         onChange(0);
       }
@@ -85,7 +82,6 @@ function LabeledNumber({
 
   const handleBlur = () => {
     setIsFocused(false);
-    // When user finishes editing, if field is empty, set to 0
     if (textValue === '') {
       onChange(0);
     }
@@ -196,14 +192,11 @@ function VideoUploadField({
         const video = result.assets[0];
         setUploading(true);
 
-        // Create a reference to Firebase Storage
         const videoRef = ref(storage, `videos/${Date.now()}_${video.name}`);
         
-        // Convert to blob for upload
         const response = await fetch(video.uri);
         const blob = await response.blob();
 
-        // Upload the video
         await uploadBytes(videoRef, blob);
         const downloadURL = await getDownloadURL(videoRef);
         
@@ -229,16 +222,13 @@ function VideoUploadField({
             style: 'destructive',
             onPress: async () => {
               try {
-                // Try to delete from storage (if it's a firebase URL)
                 if (videoUrl.includes('firebase')) {
                   const videoRef = ref(storage, videoUrl);
                   await deleteObject(videoRef).catch(() => {
-                    // Ignore errors if file doesn't exist
                   });
                 }
                 onVideoChange(undefined);
               } catch (error) {
-                // Just remove the URL even if deletion fails
                 onVideoChange(undefined);
               }
             }
@@ -395,7 +385,6 @@ export default function SettingsScreen() {
         }
       } else {
         // Clear profile data when no user
-        console.log('[Settings] No user signed in, isAdmin = false');
         setIsAdmin(false);
       }
     });
@@ -579,7 +568,7 @@ export default function SettingsScreen() {
         videoUrls: { default: '', left: '', right: '' },
       });
       setAddExerciseModalVisible(false);
-      await loadExercises(); // keep list fresh if manage is open later
+      await loadExercises(); 
     } catch (e: any) {
       Alert.alert('Error', e?.message || 'Failed to add exercise');
     } finally {
@@ -704,7 +693,7 @@ export default function SettingsScreen() {
         max_is_good: selectedExercise.uses_tracking ? !!selectedExercise.max_is_good : false,
         successful_reps: selectedExercise.uses_tracking ? (Number(selectedExercise.successful_reps) || 0) : 0,
         sets: Number(selectedExercise.sets) || 1,
-        set_duration: Number(selectedExercise.set_duration) || 0, // Allow set_duration even when tracking is off
+        set_duration: Number(selectedExercise.set_duration) || 0, 
         rest: Number(selectedExercise.rest) || 60,
         perFoot: !!selectedExercise.perFoot,
         videoUrls: Object.keys(videoUrls).length > 0 ? videoUrls : undefined,
@@ -712,7 +701,6 @@ export default function SettingsScreen() {
 
       await updateDoc(doc(db, 'exercises', selectedExercise.id), exerciseData);
       
-      // Sync the updated exercise across all workouts (admin updates affect all users)
       const updatedExercise = { id: selectedExercise.id, ...exerciseData };
       await syncExerciseUpdates(updatedExercise, isAdmin);
       
@@ -728,7 +716,6 @@ export default function SettingsScreen() {
   };
 
   const handleDeleteExercise = async (exerciseId: string) => {
-    // Find the exercise to get its details for syncing
     const exerciseToDelete = exercises.find(ex => ex.id === exerciseId);
     if (!exerciseToDelete) {
       Alert.alert('Error', 'Exercise not found');
@@ -743,14 +730,6 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await deleteDoc(doc(db, 'exercises', exerciseId));
-            
-            // Sync the exercise deletion across all workouts (admin deletions affect all users)
-            console.log('🗑️ ========== SETTINGS: EXERCISE DELETE ==========');
-            console.log('👑 Admin Status:', isAdmin);
-            console.log('👤 Current User:', auth.currentUser?.email);
-            console.log('🎯 Exercise being deleted:', exerciseToDelete.name);
-            console.log('🔄 Calling syncExerciseDeletes with isAdmin:', isAdmin);
-            console.log('=============================================');
             
             await syncExerciseDeletes(exerciseToDelete, isAdmin);
             
@@ -1546,7 +1525,7 @@ export default function SettingsScreen() {
                         
                         {selectedExercise?.set_duration > 0 && selectedExercise?.successful_reps > 0 && (
                           <Text style={{ color: COLORS.error, fontSize: 12, marginBottom: 8, fontStyle: 'italic' }}>
-                            ⚠️ Choose either Set Duration OR Successful Reps, not both
+                            Choose either Set Duration OR Successful Reps, not both
                           </Text>
                         )}
 

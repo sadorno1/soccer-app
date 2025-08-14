@@ -36,7 +36,6 @@ export default function WorkoutCompleteScreen() {
         ? workout.exercises.reduce((s, ex) => s + (ex.sets || 1), 0)
         : 0;
 
-  /* ---------- record list - ONLY show exercises where you got a personal best ---------- */
   const recordList = (snapshot ?? workout?.exercises ?? [])
     .filter(ex => improvedExerciseIds.includes(ex.id) && parsedRecords[ex.id] != null)
     .map(ex => ({

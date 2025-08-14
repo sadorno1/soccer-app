@@ -34,9 +34,8 @@ export default function MyWorkoutsScreen() {
     addWorkout({
       name,
       exercises: [],
-      tag: name,  // or blank string if you prefer
+      tag: name,  
       color: TAG_COLORS[workouts.length % TAG_COLORS.length],
-      // NO `days` here
     });
 
     setNewWorkoutName('');

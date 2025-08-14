@@ -63,18 +63,13 @@ export default function WorkoutDetailScreen() {
 
   // delete an exercise, clearing session if active
   const handleDelete = (exId: string) => {
-    console.log("Delete item 1")
     if (isActive) {
-          console.log("Delete item 2")
 
       clearActiveWorkout()
-          console.log("Delete item 3")
 
-    } // not implemented
+    } 
     deleteExerciseFromWorkout(id, exId)
-    console.log("Delete item 4")
     setHasExercises(workout.exercises.length - 1 > 0);
-    // if workout length is 0, 
   }
 
   return (
@@ -102,9 +97,8 @@ export default function WorkoutDetailScreen() {
   style={({ pressed }) => [
     GlobalStyles.add_back_Button,
     { 
-      opacity: isActive ? 0.5 : 1, // Only change opacity when disabled
-      transform: isActive ? [] : [{ scale: pressed ? 0.95 : 1 }], // No transform when disabled
-      // Remove shadow effects when disabled
+      opacity: isActive ? 0.5 : 1, 
+      transform: isActive ? [] : [{ scale: pressed ? 0.95 : 1 }], 
       elevation: isActive ? 0 : 2,
       shadowOpacity: isActive ? 0 : 0.2,
     }
@@ -112,7 +106,7 @@ export default function WorkoutDetailScreen() {
 >
   <Text style={[
     GlobalStyles.add_backText,
-    { opacity: isActive ? 0.5 : 1 } // Ensure text also respects disabled state
+    { opacity: isActive ? 0.5 : 1 } 
   ]}>+</Text>
 </Pressable>
       </View>

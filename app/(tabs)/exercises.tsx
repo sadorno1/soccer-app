@@ -18,7 +18,7 @@ import {
   View
 } from 'react-native';
 
-// Firestore Exercise shape (loosely typed for safety)
+// Firestore Exercise shape 
 interface Exercise {
   id: string;
   name: string;
@@ -73,7 +73,7 @@ export default function Exercises() {
         const items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Exercise[];
         setExercises(items);
 
-        // Build distinct positions (include everything from data, including "All Positions")
+        // Build distinct positions \
         const posSet = new Set<string>();
         items.forEach(it =>
           (it.positionCategory || []).forEach(raw => {
@@ -93,7 +93,7 @@ export default function Exercises() {
 
   // Filter + sort
   const filteredExercises = useMemo(() => {
-    if (!selectedPosition) return exercises; // no filter selected -> show all
+    if (!selectedPosition) return exercises; 
     return exercises.filter(ex => (ex.positionCategory || []).includes(selectedPosition));
   }, [exercises, selectedPosition]);
 

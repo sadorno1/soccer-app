@@ -15,13 +15,11 @@ import { auth } from '@/lib/firebase';
 import { User, onAuthStateChanged } from 'firebase/auth';
 
 export default function RootLayout() {
-  /* ---------- assets & theme ---------- */
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  /* ---------- Firebase auth state ---------- */
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
@@ -34,24 +32,22 @@ export default function RootLayout() {
   }, []);
 
   /* ---------- Router guard ---------- */
-  const segments = useSegments();        // e.g. ['(auth)', 'login']
+  const segments = useSegments();        
   const router   = useRouter();
 
   useEffect(() => {
-    if (!authReady) return;              // wait until Firebase finishes
+    if (!authReady) return;              
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!user && !inAuthGroup) {
-      router.replace('/login');          // force unauth users to /login
+      router.replace('/login');         
     } else if (user && inAuthGroup) {
-      router.replace('/');               // logged-in users -> main app
+      router.replace('/');             
     }
   }, [authReady, user, segments]);
 
-  /* ---------- splash while loading everything ---------- */
   if (!fontsLoaded || !authReady) return null;
 
-  /* ---------- UI ---------- */
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>

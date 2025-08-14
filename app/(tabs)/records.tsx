@@ -22,7 +22,6 @@ export default function Records() {
   const [latestRecords, setLatestRecords] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
-  /* ---------------- Firestore listener ---------------- */
   useEffect(() => {
     if (!user) return;
 
@@ -40,24 +39,21 @@ export default function Records() {
             const exercise = data.exercises?.find((e: any) => e.id === exerciseId);
             
             if (exercise) {
-              // Handle both old format (number) and new format ({value, timestamp})
               let reps: number;
               let recordDate: Date;
               
               if (typeof recordData === 'number') {
-                // Old format - use global timestamp
                 reps = recordData;
                 recordDate = data.timestamp?.toDate() || new Date();
               } else if (recordData && typeof recordData === 'object' && 'value' in recordData) {
-                // New format - use individual timestamp
                 reps = (recordData as any).value;
                 recordDate = (recordData as any).timestamp?.toDate() || new Date();
               } else {
-                return; // Skip invalid records
+                return; 
               }
               
               const exerciseName = exercise.name;
-              const maxIsGood = exercise.max_is_good !== false; // Default to true
+              const maxIsGood = exercise.max_is_good !== false; 
               
               // Group by exercise name, keep the best record
               if (!recordsMap[exerciseName] || 
@@ -78,7 +74,7 @@ export default function Records() {
       }
 
       const sortedRecords = Object.values(recordsMap).sort((a, b) =>
-        b.date.getTime() - a.date.getTime() // Most recent first
+        b.date.getTime() - a.date.getTime() 
       );
 
       setLatestRecords(sortedRecords);
@@ -88,7 +84,6 @@ export default function Records() {
     return unsubscribe;
   }, [user]);
 
-  /* ---------------- UI states ---------------- */
   if (loading) {
     return (
       <View style={[GlobalStyles.container, { justifyContent: 'center' }]}>
@@ -111,7 +106,6 @@ export default function Records() {
     );
   }
 
-  /* ---------------- Normal render ---------------- */
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.headerRow}>

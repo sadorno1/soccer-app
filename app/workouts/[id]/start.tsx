@@ -17,19 +17,17 @@ import {
   View,
 } from 'react-native'
 
-// Firebase imports
-import { useAuth } from '@/context/AuthContext'; // Import AuthContext
+import { useAuth } from '@/context/AuthContext'; 
 import { db } from '@/lib/firebase'
 
 type Phase = 'ready' | 'active' | 'rest'
 type Foot = 'default' | 'left' | 'right'
 
 export default function StartWorkoutScreen() {
-  // Route + Context
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { workouts, activeWorkoutId, completeWorkoutSession } = useWorkout()
-  const { user } = useAuth() // Get current user
+  const { user } = useAuth() 
 
   // Redirect if workout not found
   const workout = workouts.find(w => w.id === id)
@@ -57,7 +55,6 @@ export default function StartWorkoutScreen() {
         const savedPreference = await AsyncStorage.getItem('workoutSoundEnabled')
         if (savedPreference !== null) {
           setSoundEnabled(JSON.parse(savedPreference))
-          console.log('Loaded sound preference:', JSON.parse(savedPreference))
         }
       } catch (error) {
         console.error('Error loading sound preference:', error)
@@ -72,7 +69,6 @@ export default function StartWorkoutScreen() {
     try {
       setSoundEnabled(newValue)
       await AsyncStorage.setItem('workoutSoundEnabled', JSON.stringify(newValue))
-      console.log('Saved sound preference:', newValue)
     } catch (error) {
       console.error('Error saving sound preference:', error)
     }
@@ -92,7 +88,6 @@ export default function StartWorkoutScreen() {
         
         // Audio system initialized - sounds will be generated dynamically
         setBeepSound(null) // We'll generate sounds on-demand to avoid file loading issues
-        console.log('Audio system initialized - ready for dynamic alarm generation')
         
       } catch (error) {
         console.error('Audio setup error:', error)
@@ -109,46 +104,42 @@ export default function StartWorkoutScreen() {
     }
   }, [])
 
-  // Play bell alarm sound function
   const playBeep = async () => {
-    // Check if sound is enabled
     if (!soundEnabled) {
-      console.log('Sound disabled - skipping beep')
       return
     }
     
     try {
-      // Create a simple but effective alarm sound using Web Audio-compatible approach
       const createSimpleAlarmSound = () => {
-        const sampleRate = 22050 // Lower sample rate for smaller file size
-        const duration = 0.5 // Half second alarm
+        const sampleRate = 22050 
+        const duration = 0.5 
         const samples = Math.floor(sampleRate * duration)
         const buffer = new ArrayBuffer(44 + samples * 2)
         const view = new DataView(buffer)
         
         // WAV header
-        view.setUint32(0, 0x46464952, true) // 'RIFF'
+        view.setUint32(0, 0x46464952, true) 
         view.setUint32(4, 36 + samples * 2, true)
-        view.setUint32(8, 0x45564157, true) // 'WAVE'
-        view.setUint32(12, 0x20746d66, true) // 'fmt '
+        view.setUint32(8, 0x45564157, true) 
+        view.setUint32(12, 0x20746d66, true)
         view.setUint32(16, 16, true)
-        view.setUint16(20, 1, true) // PCM
-        view.setUint16(22, 1, true) // Mono
+        view.setUint16(20, 1, true) 
+        view.setUint16(22, 1, true)
         view.setUint32(24, sampleRate, true)
         view.setUint32(28, sampleRate * 2, true)
         view.setUint16(32, 2, true)
         view.setUint16(34, 16, true)
-        view.setUint32(36, 0x61746164, true) // 'data'
+        view.setUint32(36, 0x61746164, true)
         view.setUint32(40, samples * 2, true)
         
         // Generate triple beep alarm pattern
         for (let i = 0; i < samples; i++) {
           const t = i / sampleRate
-          const beepFreq = 880 // A5 note - attention-grabbing frequency
+          const beepFreq = 880 
           
           // Create 3 distinct beeps with gaps
-          const beepTime = 0.12 // Each beep lasts 120ms
-          const gapTime = 0.04 // 40ms gap between beeps
+          const beepTime = 0.12
+          const gapTime = 0.04
           const cycleTime = beepTime + gapTime
           
           const cycle = Math.floor(t / cycleTime)
@@ -156,12 +147,9 @@ export default function StartWorkoutScreen() {
           
           let amplitude = 0
           if (cycle < 3 && timeInCycle < beepTime) {
-            // We're in a beep phase
             const beepProgress = timeInCycle / beepTime
-            // Sharp attack, quick decay for alarm effect
             const envelope = beepProgress < 0.05 ? beepProgress / 0.05 : Math.exp(-(beepProgress - 0.05) * 12)
             
-            // Mix of sine and square wave for harsh alarm sound
             const sine = Math.sin(2 * Math.PI * beepFreq * t)
             const square = Math.sign(sine) * 0.4
             amplitude = (sine * 0.8 + square) * envelope
@@ -171,7 +159,6 @@ export default function StartWorkoutScreen() {
           view.setInt16(44 + i * 2, sample, true)
         }
         
-        // Convert to base64
         const bytes = new Uint8Array(buffer)
         let binary = ''
         for (let i = 0; i < bytes.length; i++) {
@@ -186,13 +173,9 @@ export default function StartWorkoutScreen() {
         { shouldPlay: true, volume: 1.0 }
       )
       
-      // Clean up after playing
-      setTimeout(() => sound.unloadAsync().catch(() => {}), 800)
-      console.log('Alarm sound played successfully!')
-      
+      setTimeout(() => sound.unloadAsync().catch(() => {}), 800)      
     } catch (error) {
       console.error('Error playing alarm sound:', error)
-      console.log('🚨 WORKOUT PHASE TRANSITION! 🚨')
     }
   }
 
@@ -208,21 +191,16 @@ export default function StartWorkoutScreen() {
         
         if (docSnapshot.exists()) {
           const records = docSnapshot.data().records || {};
-          // Convert new format {exerciseId: {value: number, timestamp: Date}} to old format {exerciseId: number}
           const previousRecords: Record<string, number> = {};
           for (const [exerciseId, recordData] of Object.entries(records)) {
             if (typeof recordData === 'number') {
-              // Old format - backward compatibility
               previousRecords[exerciseId] = recordData;
             } else if (recordData && typeof recordData === 'object' && 'value' in recordData) {
-              // New format
               previousRecords[exerciseId] = (recordData as any).value;
             }
           }
           setPreviousBestRecords(previousRecords);
-          console.log('Loaded previous records (global):', previousRecords);
         } else {
-          console.log('No previous records found');
           setPreviousBestRecords({});
         }
       } catch (error) {
@@ -282,12 +260,12 @@ export default function StartWorkoutScreen() {
   // Update video source when foot selection changes
   useEffect(() => {
     if (exercise.videoUrls && player) {
-      setIsLoading(true) // Reset loading state when changing video
+      setIsLoading(true) 
       const newSource = exercise.videoUrls[selectedFoot] ?? exercise.videoUrls.default!
       // Use replaceAsync to avoid UI freezes on iOS
       player.replaceAsync(newSource).catch((error) => {
         console.error('Error replacing video source:', error)
-        setIsLoading(false) // Stop loading on error
+        setIsLoading(false) 
       })
     }
   }, [selectedFoot, exercise.videoUrls, player])
@@ -300,7 +278,7 @@ export default function StartWorkoutScreen() {
         setCount(c => {
           if (c <= 1) {
             clearInterval(timerRef.current!)
-            playBeep() // Play beep on phase transition
+            playBeep()
             next()
             return 0
           }
@@ -322,7 +300,6 @@ export default function StartWorkoutScreen() {
     } else if (phase === 'active' && exercise.uses_tracking && typeof exercise.set_duration === 'number' && exercise.set_duration > 1) {
       setCount(exercise.set_duration)
       startCountdown(exercise.set_duration, () => {
-        console.log('Timer finished - waiting for user to complete set')
       })
     } else if (phase === 'rest') {
       setCount(exercise.rest)
@@ -392,7 +369,7 @@ export default function StartWorkoutScreen() {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [phase, exIdx, setIdx])
 
-  // Handle resume from pause - restart timer with current count
+  // Handle resume from pause 
   useEffect(() => {
     if (!paused && count > 0 && timerRef.current === null) {
       // Determine what should happen when timer reaches 0 based on current phase
@@ -444,7 +421,6 @@ export default function StartWorkoutScreen() {
     }
 
     try {
-      // Always use the same document ID for this user (user ID as document ID)
       const userRecordsDocId = user.uid;
       const { doc, getDoc, updateDoc, setDoc } = await import("firebase/firestore");
       const userRecordsRef = doc(db, "workoutSessions", userRecordsDocId);
@@ -453,7 +429,7 @@ export default function StartWorkoutScreen() {
       const docSnapshot = await getDoc(userRecordsRef);
       const prev = docSnapshot.exists() ? (docSnapshot.data().records || {}) : {};
 
-      // Compute deltas (only exercises actually done this session)
+      // Compute deltas 
       const updatedRecords: Record<string, number> = {};
       const improvedExercises: string[] = [];
 
@@ -462,61 +438,46 @@ export default function StartWorkoutScreen() {
         let previousBest = 0;
         if (prev[exerciseId]) {
           if (typeof prev[exerciseId] === 'number') {
-            // Old format
             previousBest = Number(prev[exerciseId]);
           } else if (prev[exerciseId] && typeof prev[exerciseId] === 'object' && 'value' in prev[exerciseId]) {
-            // New format
             previousBest = Number((prev[exerciseId] as any).value || 0);
           }
         }
         const workoutExercise = workout.exercises.find(ex => ex.id === exerciseId);
         // Respect explicit max_is_good; default to false (lower is better) when not specified
         const maxIsGood = workoutExercise?.max_is_good ?? false;
-        
-        console.log(`${exerciseId}: current=${reps}, previous=${previousBest}, maxIsGood=${maxIsGood}`);
-        
+              
         let isImprovement = false;
         if (previousBest === 0) {
-          // First time doing this exercise is always an improvement if a positive value exists
           isImprovement = reps > 0;
         } else if (maxIsGood) {
-          // Higher is better
           isImprovement = reps > previousBest;
         } else {
-          // Lower is better
           isImprovement = reps < previousBest;
         }
         
         if (isImprovement) {
           updatedRecords[exerciseId] = reps;
           improvedExercises.push(exerciseId);
-          console.log(`🎉 Personal best: ${previousBest} → ${reps} (${maxIsGood ? 'higher is better' : 'lower is better'})`);
         }
       }
 
       const hasImprovements = improvedExercises.length > 0;
 
-      // If no improvements, skip DB write entirely
       if (!hasImprovements) {
-        console.log("No PRs; skipping write.");
         return {
           docId: userRecordsDocId,
           hasImprovements: false,
           improvedExercises: [],
         };
       }
-
-      // If first time and literally nothing recorded, also skip creating a doc
       if (!docSnapshot.exists() && Object.keys(currentRecords).length === 0) {
-        console.log("No reps this session; skipping document creation.");
         return { docId: null, hasImprovements: false, improvedExercises: [] };
       }
 
       if (docSnapshot.exists()) {
-        // Update existing global record document
         const patch: any = { timestamp: new Date() };
 
-        // Only write improved keys under records.* with individual timestamps
         const currentTimestamp = new Date();
         for (const exId of improvedExercises) {
           patch[`records.${exId}`] = {
@@ -525,11 +486,9 @@ export default function StartWorkoutScreen() {
           };
         }
 
-        // Always ensure exercises array includes metadata for all improved exercises
         const existingExercises = docSnapshot.data().exercises || [];
         const exercisesById = new Map(existingExercises.map((ex: any) => [ex.id, ex]));
         
-        // Add or update metadata for improved exercises
         for (const exId of improvedExercises) {
           const workoutExercise = workout.exercises.find(ex => ex.id === exId);
           if (workoutExercise) {
@@ -553,7 +512,6 @@ export default function StartWorkoutScreen() {
           improvedExercises,
         };
       } else {
-        // Create first global record document for this user
         const firstRecords: Record<string, any> = {};
         const firstTimeImprovedExercises: string[] = [];
         const currentTimestamp = new Date();
@@ -563,7 +521,6 @@ export default function StartWorkoutScreen() {
             value: currentRecords[exId],
             timestamp: currentTimestamp
           };
-          // For first time, only exercises with actual recorded reps are "improvements"
           if (currentRecords[exId] > 0) {
             firstTimeImprovedExercises.push(exId);
           }
@@ -599,10 +556,9 @@ export default function StartWorkoutScreen() {
 
   // Handle Done
   const handleDone = () => {
-    playBeep() // Play beep when completing a set
+    playBeep() 
     const reps = parseInt(inputVal, 10)
     if (!isNaN(reps)) {
-      // Track the maximum reps for this exercise during this session
       setMaxRecord(prev => ({
         ...prev,
         [exercise.id]: Math.max(prev[exercise.id] || 0, reps),
@@ -612,7 +568,6 @@ export default function StartWorkoutScreen() {
     setPhase('rest')
   }
 
-  // Complete workout with specific record data
   const completeWorkoutWithRecord = async (recordData: Record<string, number>) => {
     try {
       const sessionResult = await saveSessionToFirestore(recordData);
@@ -620,7 +575,6 @@ export default function StartWorkoutScreen() {
         workout.exercises.map(({ id, name, sets }) => ({ id, name, sets }))
       );
 
-      /* ---------- 1. navigate away immediately ---------- */
       router.replace({
         pathname: '/workouts/[id]/complete',
         params: {
@@ -633,11 +587,8 @@ export default function StartWorkoutScreen() {
         },
       });
 
-      /* ---------- 2. reset Quick Workout in the background ---------- */
-      // don't await; if it fails we just log the error
       completeWorkoutSession(id).catch(console.error);
 
-      /* optional local cleanup */
       setExIdx(0);
       setSetIdx(0);
       setPhase('ready');
@@ -647,12 +598,8 @@ export default function StartWorkoutScreen() {
       alert('Failed to complete workout. Please try again.');
     }
   };
-
-  // Complete workout - Updated to handle user-specific completion
-  // StartWorkoutScreen.tsx  (inside completeWorkout)
 const completeWorkout = async () => {
   try {
-    // If we're in an active tracking phase with input, save it first
     let finalMaxRecord = { ...maxRecord };
     if (phase === 'active' && exercise.uses_tracking && inputVal.trim()) {
       const reps = parseInt(inputVal, 10);
@@ -680,11 +627,8 @@ const completeWorkout = async () => {
       },
     });
 
-    /* ---------- 2. reset Quick Workout in the background ---------- */
-    // don’t await; if it fails we just log the error
     completeWorkoutSession(id).catch(console.error);
 
-    /* optional local cleanup */
     setExIdx(0);
     setSetIdx(0);
     setPhase('ready');
@@ -698,15 +642,14 @@ const completeWorkout = async () => {
 
   // Prev/Next
   const goPrev = () => {
-    playBeep() // Play beep on navigation
+    playBeep() 
     if (phase === 'rest') setPhase('active')
     else if (phase === 'active') setPhase('ready')
     else if (setIdx > 0) { setSetIdx(i => i - 1); setPhase('rest') }
     else if (exIdx > 0) { const prev = workout.exercises[exIdx-1]; setExIdx(i=>i-1); setSetIdx(prev.sets-1); setPhase('rest') }
   }
   const goNext = () => {
-    playBeep() // Play beep on navigation
-    // If we're in active phase with tracking and have input, save it first
+    playBeep() 
     if (phase === 'active' && exercise.uses_tracking && inputVal.trim()) {
       const reps = parseInt(inputVal, 10);
       if (!isNaN(reps)) {
@@ -715,9 +658,8 @@ const completeWorkout = async () => {
           [exercise.id]: Math.max(maxRecord[exercise.id] || 0, reps),
         };
         setMaxRecord(updatedMaxRecord);
-        setInputVal(''); // Clear input after saving
+        setInputVal(''); 
         
-        // Check if this active->rest transition would complete the workout
         const isLastSet = setIdx + 1 >= exercise.sets;
         const isLastExercise = exIdx + 1 >= workout.exercises.length;
         if (isLastSet && isLastExercise) {
@@ -746,8 +688,6 @@ const completeWorkout = async () => {
         setSetIdx(0);
         setPhase('ready');
       } else {
-        // This is where we complete the workout when navigating with next
-        // Use the accumulated maxRecord to ensure personal bests are detected
         completeWorkoutWithRecord(maxRecord);
       }
     }
