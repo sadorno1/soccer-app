@@ -17,7 +17,7 @@ import {
   View,
 } from 'react-native'
 
-import { useAuth } from '@/context/AuthContext'; 
+import { useAuth } from '@/context/AuthContext'
 import { db } from '@/lib/firebase'
 
 type Phase = 'ready' | 'active' | 'rest'
@@ -52,12 +52,20 @@ export default function StartWorkoutScreen() {
   useEffect(() => {
     const loadSoundPreference = async () => {
       try {
+        // Add extra safety checks for AsyncStorage
+        if (!AsyncStorage || typeof AsyncStorage.getItem !== 'function') {
+          console.warn('AsyncStorage not available, using default sound preference');
+          return;
+        }
+        
         const savedPreference = await AsyncStorage.getItem('workoutSoundEnabled')
         if (savedPreference !== null) {
           setSoundEnabled(JSON.parse(savedPreference))
         }
       } catch (error) {
         console.error('Error loading sound preference:', error)
+        // Fall back to default (enabled)
+        setSoundEnabled(true)
       }
     }
     
@@ -68,9 +76,17 @@ export default function StartWorkoutScreen() {
   const toggleSound = async (newValue: boolean) => {
     try {
       setSoundEnabled(newValue)
+      
+      // Check if AsyncStorage is available before using it
+      if (!AsyncStorage || typeof AsyncStorage.setItem !== 'function') {
+        console.warn('AsyncStorage not available, sound preference not persisted');
+        return;
+      }
+      
       await AsyncStorage.setItem('workoutSoundEnabled', JSON.stringify(newValue))
     } catch (error) {
       console.error('Error saving sound preference:', error)
+      // Continue anyway - the state is still updated locally
     }
   }
   

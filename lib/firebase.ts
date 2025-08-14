@@ -5,13 +5,11 @@ import 'react-native-url-polyfill/auto';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 
 // Firebase auth - React Native compatible imports
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Auth,
   createUserWithEmailAndPassword,
   getAuth,
   getIdTokenResult,
-  getReactNativePersistence,
   initializeAuth,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -58,24 +56,19 @@ const firebaseConfig = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  // measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID, // REMOVED: Causes crashes in React Native
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with explicit React Native persistence
+// Initialize Firebase Auth - modern Firebase handles React Native persistence automatically
 let auth: Auth;
 try {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-  });
+  // Try to get existing auth instance first
+  auth = getAuth(app);
 } catch (error: any) {
-  // If auth is already initialized, get the existing instance
-  if (error.code === 'auth/already-initialized') {
-    auth = getAuth(app);
-  } else {
-    throw error;
-  }
+  // If that fails, initialize a new one
+  auth = initializeAuth(app);
 }
 
 // Helper function to check if user is in allowed users list

@@ -10,11 +10,14 @@ import { WorkoutProvider } from '@/context/WorkoutContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useFonts } from 'expo-font';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { auth } from '@/lib/firebase';
 import { User, onAuthStateChanged } from 'firebase/auth';
 
 export default function RootLayout() {
+  console.log('🚀 RootLayout: Starting app...');
+  
   const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -23,11 +26,16 @@ export default function RootLayout() {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
+  console.log('🚀 RootLayout: State initialized, fontsLoaded:', fontsLoaded);
+
   useEffect(() => {
+    console.log('🚀 RootLayout: Setting up auth listener...');
     const unsub = onAuthStateChanged(auth, u => {
+      console.log('🚀 RootLayout: Auth state changed:', u ? 'User logged in' : 'No user');
       setUser(u);
       setAuthReady(true);
     });
+    console.log('🚀 RootLayout: Auth listener setup complete');
     return unsub;
   }, []);
 
@@ -36,12 +44,17 @@ export default function RootLayout() {
   const router   = useRouter();
 
   useEffect(() => {
+    console.log('🚀 RootLayout: Router guard check - authReady:', authReady, 'user:', !!user);
     if (!authReady) return;              
     const inAuthGroup = segments[0] === '(auth)';
 
+    console.log('🚀 RootLayout: Navigation logic - inAuthGroup:', inAuthGroup, 'segments:', segments);
+    
     if (!user && !inAuthGroup) {
+      console.log('🚀 RootLayout: Redirecting to login');
       router.replace('/login');         
     } else if (user && inAuthGroup) {
+      console.log('🚀 RootLayout: Redirecting to main app');
       router.replace('/');             
     }
   }, [authReady, user, segments]);
@@ -49,24 +62,25 @@ export default function RootLayout() {
   if (!fontsLoaded || !authReady) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <AuthProvider>
-      <WorkoutProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            {/* unauth screens */}
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <WorkoutProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                {/* unauth screens */}
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
 
-            {/* your existing tabs */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                {/* your existing tabs */}
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </WorkoutProvider>
-      </AuthProvider>
-
-    </GestureHandlerRootView>
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </WorkoutProvider>
+        </AuthProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
