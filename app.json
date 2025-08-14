@@ -12,7 +12,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sadorno1.soccerapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Camera is used to record training videos.",
+        "NSMicrophoneUsageDescription": "Microphone is used when recording videos.",
+        "NSPhotoLibraryUsageDescription": "Allow selecting media for workouts.",
+        "NSPhotoLibraryAddUsageDescription": "Allow saving exported media.",
+        "NSUserTrackingUsageDescription": "Used to improve app experience.",
+        "NSLocationWhenInUseUsageDescription": "Used to show nearby fields.",
+        "NSMotionUsageDescription": "Used for motion-based drills."
       }
     },
     "android": {

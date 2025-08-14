@@ -1,16 +1,17 @@
-import 'react-native-reanimated';
+import 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import 'react-native-reanimated';
 
-import { useEffect, useState } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 
-import { WorkoutProvider } from '@/context/WorkoutContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/context/AuthContext';
+import { WorkoutProvider } from '@/context/WorkoutContext';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useFonts } from 'expo-font';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import { auth } from '@/lib/firebase';
 import { User, onAuthStateChanged } from 'firebase/auth';
