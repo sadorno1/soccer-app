@@ -31,13 +31,18 @@ export default function RootLayout() {
 
   useEffect(() => {
     console.log('🚀 RootLayout: Setting up auth listener...');
-    const unsub = onAuthStateChanged(auth, u => {
-      console.log('🚀 RootLayout: Auth state changed:', u ? 'User logged in' : 'No user');
-      setUser(u);
-      setAuthReady(true);
-    });
-    console.log('🚀 RootLayout: Auth listener setup complete');
-    return unsub;
+    try {
+      const unsub = onAuthStateChanged(auth, u => {
+        console.log('🚀 RootLayout: Auth state changed:', u ? 'User logged in' : 'No user');
+        setUser(u);
+        setAuthReady(true);
+      });
+      console.log('🚀 RootLayout: Auth listener setup complete');
+      return unsub;
+    } catch (error) {
+      console.error('🚀 RootLayout: Auth listener setup failed:', error);
+      setAuthReady(true); // Set ready even on error to prevent infinite loading
+    }
   }, []);
 
   /* ---------- Router guard ---------- */
