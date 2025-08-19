@@ -1,10 +1,12 @@
 import { COLORS } from '@/constants/Colors'
 import { useWorkout } from '@/context/WorkoutContext'
+import { db } from '@/lib/firebase'
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Audio } from 'expo-av'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { VideoView, useVideoPlayer } from 'expo-video'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
@@ -18,7 +20,6 @@ import {
 } from 'react-native'
 
 import { useAuth } from '@/context/AuthContext'
-import { db } from '@/lib/firebase'
 
 type Phase = 'ready' | 'active' | 'rest'
 type Foot = 'default' | 'left' | 'right'
@@ -201,7 +202,6 @@ export default function StartWorkoutScreen() {
       if (!user) return;
       
       try {
-        const { doc, getDoc } = await import("firebase/firestore");
         const userRecordsRef = doc(db, 'workoutSessions', user.uid);
         const docSnapshot = await getDoc(userRecordsRef);
         
@@ -438,7 +438,6 @@ export default function StartWorkoutScreen() {
 
     try {
       const userRecordsDocId = user.uid;
-      const { doc, getDoc, updateDoc, setDoc } = await import("firebase/firestore");
       const userRecordsRef = doc(db, "workoutSessions", userRecordsDocId);
       
       // Get existing records

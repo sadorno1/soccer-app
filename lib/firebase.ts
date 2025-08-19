@@ -2,6 +2,7 @@ import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 
 // Firebase core - use specific imports for React Native compatibility
+import Constants from 'expo-constants';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 
 // Firebase auth - React Native compatible imports
@@ -48,16 +49,29 @@ import {
   uploadBytes
 } from 'firebase/storage';
 
+// Firebase configuration - try to get from environment variables first, fallback to app config
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || Constants.expoConfig?.extra?.firebase?.apiKey,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || Constants.expoConfig?.extra?.firebase?.authDomain,
+  databaseURL: process.env.EXPO_PUBLIC_FIREBASE_DATABASE_URL || Constants.expoConfig?.extra?.firebase?.databaseURL,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || Constants.expoConfig?.extra?.firebase?.projectId,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || Constants.expoConfig?.extra?.firebase?.storageBucket,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || Constants.expoConfig?.extra?.firebase?.messagingSenderId,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || Constants.expoConfig?.extra?.firebase?.appId,
   // measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID, // REMOVED: Causes crashes in React Native
 };
+
+// Debug: Log config to help diagnose issues (only in development)
+if (__DEV__) {
+  console.log('Firebase config loaded:', {
+    apiKey: firebaseConfig.apiKey ? '✓ Present' : '✗ Missing',
+    authDomain: firebaseConfig.authDomain ? '✓ Present' : '✗ Missing',
+    projectId: firebaseConfig.projectId ? '✓ Present' : '✗ Missing',
+    storageBucket: firebaseConfig.storageBucket ? '✓ Present' : '✗ Missing',
+    messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Present' : '✗ Missing',
+    appId: firebaseConfig.appId ? '✓ Present' : '✗ Missing',
+  });
+}
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 

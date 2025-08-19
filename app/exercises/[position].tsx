@@ -6,6 +6,7 @@ import { useWorkout, Exercise as WorkoutExercise } from '@/context/WorkoutContex
 import { db } from '@/lib/firebase';
 import { GlobalStyles } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { collection, getDocs } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Text, View } from 'react-native';
 
@@ -48,7 +49,6 @@ export default function PositionExerciseScreen() {
     let mounted = true;
     (async () => {
       try {
-        const { getDocs, collection } = await import('firebase/firestore');
         const snap = await getDocs(collection(db, 'exercises'));
         if (!mounted) return;
         const items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as FirestoreExercise[];
