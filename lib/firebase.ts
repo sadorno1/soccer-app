@@ -19,6 +19,8 @@ import {
   updateProfile,
   User
 } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getReactNativePersistence } from 'firebase/auth';
 
 // Firebase firestore
 import {
@@ -49,7 +51,7 @@ import {
   uploadBytes
 } from 'firebase/storage';
 
-// Firebase configuration - try to get from environment variables first, fallback to app config
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || Constants.expoConfig?.extra?.firebase?.apiKey,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || Constants.expoConfig?.extra?.firebase?.authDomain,
@@ -58,7 +60,6 @@ const firebaseConfig = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || Constants.expoConfig?.extra?.firebase?.storageBucket,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || Constants.expoConfig?.extra?.firebase?.messagingSenderId,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || Constants.expoConfig?.extra?.firebase?.appId,
-  // measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID, // REMOVED: Causes crashes in React Native
 };
 
 // Debug: Log config to help diagnose issues (only in development)
@@ -75,14 +76,15 @@ if (__DEV__) {
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth - modern Firebase handles React Native persistence automatically
+// Always use initializeAuth with AsyncStorage persistence for React Native
 let auth: Auth;
 try {
-  // Try to get existing auth instance first
-  auth = getAuth(app);
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
 } catch (error: any) {
-  // If that fails, initialize a new one
-  auth = initializeAuth(app);
+  // If already initialized, get the existing instance
+  auth = getAuth(app);
 }
 
 // Helper function to check if user is in allowed users list

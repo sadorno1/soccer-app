@@ -1,10 +1,10 @@
 export default {
   expo: {
-    name: "soccer-app",
+    name: "Soccer Training",
     slug: "soccer-app",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/icon.png",
+    icon: "./assets/images/logo.png",
     scheme: "soccerapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -13,13 +13,8 @@ export default {
       bundleIdentifier: "com.sadorno1.soccerapp",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: "Camera is used to record training videos.",
-        NSMicrophoneUsageDescription: "Microphone is used when recording videos.",
         NSPhotoLibraryUsageDescription: "Allow selecting media for workouts.",
-        NSPhotoLibraryAddUsageDescription: "Allow saving exported media.",
-        NSUserTrackingUsageDescription: "Used to improve app experience.",
-        NSLocationWhenInUseUsageDescription: "Used to show nearby fields.",
-        NSMotionUsageDescription: "Used for motion-based drills."
+        NSPhotoLibraryAddUsageDescription: "Allow saving exported media."
       }
     },
     android: {
@@ -40,8 +35,8 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/splash-icon.png",
-          imageWidth: 200,
+          image: "./assets/images/logo.png",
+          imageWidth: 150,
           resizeMode: "contain",
           backgroundColor: "#ffffff"
         }

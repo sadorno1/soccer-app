@@ -10,6 +10,7 @@ import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  AppState,
   Modal,
   Pressable,
   ScrollView,
@@ -424,6 +425,26 @@ export default function StartWorkoutScreen() {
       setSelectedFoot(setIdx % 2 === 0 ? 'left' : 'right')
     }
   }, [setIdx])
+
+  // Auto-pause when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        // App is going to background - auto pause if not already paused
+        if (!paused && phase !== 'ready') { // Don't pause during ready phase
+          console.log('App backgrounded - auto-pausing workout')
+          setPaused(true)
+          setPauseModalVisible(true)
+        }
+      }
+    }
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange)
+
+    return () => {
+      subscription?.remove()
+    }
+  }, [paused, phase])
 
   // Phase color
   const getPhaseColor = () =>

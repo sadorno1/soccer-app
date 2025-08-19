@@ -18,22 +18,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Check if user is still in the allowed users list
+        // For app startup, trust that the user was previously validated
+        // Only check allowed status if they don't have a valid token or on specific actions
+        setUser(firebaseUser);
+        
+        // Optional: You could do a background check without signing out on error
         try {
           const isAllowed = await checkUserAllowed(firebaseUser.email || '');
           if (!isAllowed) {
-            // If user is no longer allowed, sign them out
             console.log('[AuthContext] User no longer in allowed list, signing out');
             await signOut(auth);
             setUser(null);
-          } else {
-            setUser(firebaseUser);
           }
         } catch (error) {
-          console.error('[AuthContext] Error checking user allowed status:', error);
-          // On error, sign out for security
-          await signOut(auth);
-          setUser(null);
+          // Don't sign out on error - just log it
+          // The user might not have network, Firebase might be loading, etc.
+          console.warn('[AuthContext] Could not verify user allowed status (keeping signed in):', error);
         }
       } else {
         setUser(null);

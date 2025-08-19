@@ -7,6 +7,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
+import { CustomSplashScreen } from '@/components/CustomSplashScreen';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { AuthProvider } from '@/context/AuthContext';
 import { WorkoutProvider } from '@/context/WorkoutContext';
@@ -65,7 +66,10 @@ export default function RootLayout() {
     }
   }, [authReady, user, segments]);
 
-  if (!fontsLoaded || !authReady) return null;
+  // Show custom loading screen while fonts and auth are loading
+  if (!fontsLoaded || !authReady) {
+    return <CustomSplashScreen />;
+  }
 
   return (
     <ErrorBoundary>
