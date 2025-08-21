@@ -4,7 +4,7 @@ export default {
     slug: "soccer-app",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/images/logo.png",
+    icon: "./assets/images/icon.png",
     scheme: "soccerapp",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
@@ -35,7 +35,7 @@ export default {
       [
         "expo-splash-screen",
         {
-          image: "./assets/images/logo.png",
+          image: "./assets/images/icon.png",
           imageWidth: 150,
           resizeMode: "contain",
           backgroundColor: "#ffffff"

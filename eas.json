@@ -7,12 +7,8 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": {
-        "gradleCommand": ":app:assembleDebug"
-      },
-      "ios": {
-        "simulator": true
-      },
+      "ios": { "simulator": true },
+      "android": { "buildType": "apk" },
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAok-a7ptCD2RtHuJ5XL2idRPBmOt54DGs",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "soccer-app-7147f.firebaseapp.com",
@@ -23,6 +19,7 @@
         "EXPO_PUBLIC_FIREBASE_APP_ID": "1:119858451861:web:15983895e1f50405c4129c"
       }
     },
+
     "preview": {
       "distribution": "internal",
       "env": {
@@ -35,8 +32,16 @@
         "EXPO_PUBLIC_FIREBASE_APP_ID": "1:119858451861:web:15983895e1f50405c4129c"
       }
     },
+
     "production": {
       "autoIncrement": true,
+      "ios": {
+        "distribution": "store",            
+        "buildConfiguration": "Release"
+      },
+      "android": {
+        "buildType": "app-bundle"          
+      },
       "env": {
         "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyAok-a7ptCD2RtHuJ5XL2idRPBmOt54DGs",
         "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "soccer-app-7147f.firebaseapp.com",
@@ -48,7 +53,15 @@
       }
     }
   },
+
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6751013332"   
+      },
+      "android": {
+        "track": "internal"   
+      }
+    }
   }
 }
