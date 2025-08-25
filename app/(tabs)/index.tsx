@@ -19,7 +19,6 @@ export default function HomeScreen() {
   const { user } = useAuth();
   
   const [latestRecord, setLatestRecord] = useState<{ name: string; value: number; date: Date } | null>(null);
-  const [totalReps, setTotalReps] = useState(0);
   const [exercisesWithRecords, setExercisesWithRecords] = useState(0);
   const [totalExercisesAvailable, setTotalExercisesAvailable] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -56,7 +55,7 @@ export default function HomeScreen() {
           // Find the most recent record
           let mostRecentRecord = null;
           let mostRecentDate = new Date(0); 
-          let totalRepsSum = 0;
+          // Removed totalRepsSum
           
           Object.entries(data.records).forEach(([exerciseId, recordData]) => {
             const exercise = data.exercises.find((e: any) => e.id === exerciseId);
@@ -77,8 +76,7 @@ export default function HomeScreen() {
                 return;
               }
               
-              // Add to total reps
-              totalRepsSum += value;
+              // Removed totalRepsSum
               
               if (recordDate > mostRecentDate) {
                 mostRecentDate = recordDate;
@@ -92,16 +90,16 @@ export default function HomeScreen() {
           });
           
           setLatestRecord(mostRecentRecord);
-          setTotalReps(totalRepsSum);
+          // Removed setTotalReps
           setExercisesWithRecords(Object.keys(data.records).length);
         } else {
           setLatestRecord(null);
-          setTotalReps(0);
+          // Removed setTotalReps
           setExercisesWithRecords(0);
         }
       } else {
         setLatestRecord(null);
-        setTotalReps(0);
+  // Removed setTotalReps
         setExercisesWithRecords(0);
       }
       
@@ -133,7 +131,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-      <Text style={GlobalStyles.sectionTitle}>Last Workout</Text>
+      <Text style={GlobalStyles.sectionTitle}>Last Created Workout</Text>
       <Pressable 
         style={GlobalStyles.card}
         onPress={() => router.push('/my-workouts')}
@@ -174,8 +172,8 @@ export default function HomeScreen() {
         style={GlobalStyles.card}
         onPress={() => router.push('/records')}
       >
-        <View style={styles.progressSection}>
-          <View style={styles.pieChartContainer}>
+        <View style={[styles.progressSection, { alignItems: 'center', justifyContent: 'center', width: '100%' }]}> 
+          <View style={styles.pieChartContainer}> 
             {loading ? (
               <View style={styles.pieChartPlaceholder}>
                 <Text style={styles.loadingText}>Loading...</Text>
@@ -293,11 +291,9 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.totalRepsSection}>
-          <Text style={styles.totalRepsLabel}>Total Reps Achieved</Text>
-          <Text style={styles.totalRepsValue}>
-            {loading ? '...' : totalReps.toLocaleString()}
-          </Text>
+        {/* Centered diagram container */}
+        <View style={{ alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          {/* ...existing diagram code... */}
         </View>
       </Pressable>
       </ScrollView>
@@ -393,26 +389,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '500',
   },
-  totalRepsSection: {
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: screenHeight * 0.018, 
-  },
-  totalRepsLabel: {
-    fontSize: screenWidth * 0.032, 
-    fontWeight: '600',
-    color: COLORS.textMuted,
-    marginBottom: screenHeight * 0.007, 
-    letterSpacing: 1,
-  },
-  totalRepsValue: {
-    fontSize: screenWidth * 0.08, 
-    fontWeight: '800',
-    color: COLORS.primary,
-    textShadowColor: 'rgba(37, 99, 235, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
-  },
+  // Removed totalReps styles
 });
 

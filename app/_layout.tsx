@@ -77,12 +77,12 @@ export default function RootLayout() {
         <AuthProvider>
           <WorkoutProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack>
+              <Stack screenOptions={{ headerShown: false }}>
                 {/* unauth screens */}
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" />
 
                 {/* your existing tabs */}
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" />
 
                 <Stack.Screen name="+not-found" />
               </Stack>

@@ -41,14 +41,14 @@ export default function LoginScreen({ navigation }: any) {
       await signInWithEmailAndPassword(auth, email.trim(), password);
     } catch (e: any) {
       // Handle Firebase auth errors
-      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
         setError('Invalid email or password');
       } else if (e.code === 'auth/invalid-email') {
         setError('Invalid email address');
       } else if (e.code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Try again later.');
       } else {
-        setError(e.message);
+        setError('e.message');
       }
     } finally {
       setLoading(false);

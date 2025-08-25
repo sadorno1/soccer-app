@@ -792,20 +792,14 @@ const completeWorkout = async () => {
               {(exercise.videoUrls.left || exercise.videoUrls.right) && (
                 <View style={styles.footSwitcher}>
                   {exercise.videoUrls.left && (
-                    <Pressable
-                      onPress={() => setSelectedFoot('left')}
-                      style={[styles.footBtn, selectedFoot==='left' && styles.footBtnActive]}
-                    >
+                    <View style={[styles.footBtn, selectedFoot==='left' && styles.footBtnActive, { opacity: 0.7 }]}> 
                       <Text style={styles.footText}>L</Text>
-                    </Pressable>
+                    </View>
                   )}
                   {exercise.videoUrls.right && (
-                    <Pressable
-                      onPress={() => setSelectedFoot('right')}
-                      style={[styles.footBtn, selectedFoot==='right' && styles.footBtnActive]}
-                    >
+                    <View style={[styles.footBtn, selectedFoot==='right' && styles.footBtnActive, { opacity: 0.7 }]}> 
                       <Text style={styles.footText}>R</Text>
-                    </Pressable>
+                    </View>
                   )}
                 </View>
               )}
