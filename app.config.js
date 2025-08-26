@@ -9,7 +9,7 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: "com.sadorno1.soccerapp",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
