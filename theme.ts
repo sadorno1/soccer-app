@@ -57,8 +57,19 @@ export const GlobalStyles = StyleSheet.create({
     fontSize: SIZES.h1,
     fontWeight: '700',
     color: COLORS.text,
-    paddingTop: verticalScale(40),
+    paddingTop: verticalScale(45),
     marginBottom: verticalScale(16),
+    marginLeft: verticalScale(60),   
+    marginRight: verticalScale(60),
+    textAlign: 'center',
+  },
+    header1: {
+    fontSize: SIZES.h1,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: verticalScale(1),
+  paddingLeft: moderateScale(70), 
+    marginRight: verticalScale(5),
     textAlign: 'center',
   },
   sectionTitle: {
@@ -77,8 +88,8 @@ export const GlobalStyles = StyleSheet.create({
   headerRow: {
   flexDirection: 'row',
   alignItems: 'center',
-  justifyContent: 'center',   // ⬅ keeps title in the middle
-  position: 'relative',       // ⬅ lets us absolutely-place the back button
+  justifyContent: 'center',   
+  position: 'relative',     
   marginBottom: verticalScale(18),
 },
   backText: {
@@ -98,16 +109,49 @@ export const GlobalStyles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     color: COLORS.text,
-    marginBottom: verticalScale(32), // Extra bottom padding for auth pages
+    marginBottom: verticalScale(32), 
   },
  add_back_Button: {
-    backgroundColor: COLORS.primary,
-  borderRadius: 50,
-  width: moderateScale(56),    // ⬅ scales with screen size
+  backgroundColor: COLORS.primary,
+  width: moderateScale(56),
   height: moderateScale(56),
+  borderRadius: moderateScale(56),
+  position: 'absolute',
+  left: scale(3), 
+  top: scale(40),
   justifyContent: 'center',
   alignItems: 'center',
-  elevation: 6,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+},
+ add_back_exercises_Button: {
+  backgroundColor: COLORS.primary,
+  width: moderateScale(56),
+  height: moderateScale(56),
+  borderRadius: moderateScale(56),
+  position: 'absolute',
+  left: scale(20), 
+  zIndex: 10,
+  top: scale(15),
+  justifyContent: 'center',
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+},
+ add_plus_Button: {
+  backgroundColor: COLORS.primary,
+  width: moderateScale(56),
+  height: moderateScale(56),
+  borderRadius: moderateScale(56),
+  position: 'absolute',
+  right: scale(3), 
+  top: scale(40),
+  justifyContent: 'center',
+  alignItems: 'center',
   shadowColor: '#000',
   shadowOffset: { width: 0, height: 4 },
   shadowOpacity: 0.2,
@@ -115,10 +159,10 @@ export const GlobalStyles = StyleSheet.create({
 },
 add_backText: {
   color: '#fff',
-  fontSize: 32, // Larger plus sign
-  fontWeight: '300', // Thinner weight looks more elegant
-  lineHeight: 36, // Perfect vertical alignment
-  includeFontPadding: false, // Removes extra padding
+  fontSize: 32,
+  fontWeight: '300', 
+  lineHeight: 36, 
+  includeFontPadding: false,
   textAlignVertical: 'center',
 },
 
@@ -126,7 +170,7 @@ add_backText: {
   banner: {
     backgroundColor: COLORS.warning,
     padding: SIZES.sm,
-    borderRadius: SIZES.xs + SIZES.xs, // 6
+    borderRadius: SIZES.xs + SIZES.xs, 
     marginBottom: SIZES.sm,
     alignItems: 'center',
   },

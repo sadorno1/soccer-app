@@ -26,7 +26,7 @@ export default function SelectPositionScreen() {
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.headerRow}>
          
-      <Text style={GlobalStyles.title}>Select Position</Text>
+      <Text style={GlobalStyles.header}>Select Position</Text>
         
       </View>
 

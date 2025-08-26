@@ -87,7 +87,7 @@ export default function WorkoutDetailScreen() {
                   <Text style={GlobalStyles.add_backText}>{'←'}</Text>
                 </Pressable>
                 
-        <Text style={GlobalStyles.title}>{workout.name}</Text>
+        <Text style={GlobalStyles.header}>{workout.name}</Text>
     <Pressable 
   onPress={() => {
     setModalVisible(true);
@@ -95,7 +95,7 @@ export default function WorkoutDetailScreen() {
   }}
   disabled={isActive}
   style={({ pressed }) => [
-    GlobalStyles.add_back_Button,
+    GlobalStyles.add_plus_Button,
     { 
       opacity: isActive ? 0.5 : 1, 
       transform: isActive ? [] : [{ scale: pressed ? 0.95 : 1 }], 

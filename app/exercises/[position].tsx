@@ -113,7 +113,7 @@ export default function PositionExerciseScreen() {
   return (
     <View style={GlobalStyles.container}>
       <View style={GlobalStyles.headerRow}>
-        <Text style={GlobalStyles.title}>
+        <Text style={GlobalStyles.header}>
           {titleCase(String(position))}
         </Text>
       </View>

@@ -161,19 +161,16 @@ export default function Exercises() {
           <View style={[GlobalStyles.headerRow, { paddingTop: SIZES.md, paddingHorizontal: SIZES.lg }]}>
             <Pressable onPress={onClose}
               style={({ pressed }) => [
-                GlobalStyles.add_back_Button,
+                GlobalStyles.add_back_exercises_Button,
                 { 
-                  transform: [{ scale: pressed ? 0.95 : 1 }],
-                  shadowOpacity: pressed ? 0.3 : 0.2,
-                  marginLeft: SIZES.md,
-                  marginTop: SIZES.sm,
+                   transform: [{ scale: pressed ? 0.95 : 1 }],
+                   shadowOpacity: pressed ? 0.3 : 0.2,
                 }
               ]}
             >
               <Text style={GlobalStyles.add_backText}>{'←'}</Text>
-              
             </Pressable>
-            <Text style={[GlobalStyles.title, { flex: 1, marginLeft: SIZES.md, marginTop: SIZES.sm }]}>{exercise?.name}</Text>
+            <Text style={[GlobalStyles.header1, { flex: 1, marginLeft: SIZES.md, marginTop: SIZES.sm }]}>{exercise?.name}</Text>
           </View>
         
         <ScrollView style={GlobalStyles.container}>

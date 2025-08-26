@@ -93,12 +93,12 @@ export default function MyWorkoutsScreen() {
           <Text style={GlobalStyles.add_backText}>{'←'}</Text>
         </Pressable>
         
-        <Text style={GlobalStyles.title}>My Workouts</Text>
+        <Text style={GlobalStyles.header}>My Workouts</Text>
        
         <Pressable 
           onPress={() => setModalVisible(true)}
           style={({ pressed }) => [
-            GlobalStyles.add_back_Button,
+            GlobalStyles.add_plus_Button,
             { 
               transform: [{ scale: pressed ? 0.95 : 1 }],
               shadowOpacity: pressed ? 0.3 : 0.2,
