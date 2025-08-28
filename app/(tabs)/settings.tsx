@@ -289,6 +289,39 @@ function VideoUploadField({
 /* ───────────────────────── Settings Screen ───────────────────────── */
 
 export default function SettingsScreen() {
+  // Account Deletion
+  const handleDeleteAccount = async () => {
+    if (!user) {
+      Alert.alert('Error', 'No user is currently logged in.');
+      return;
+    }
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to permanently delete your account and all the associated data? This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const userDocRef = doc(db, 'users', user.uid);
+              await deleteDoc(userDocRef).catch(() => {});
+              await user.delete();
+              Alert.alert('Account Deleted', 'Your account has been deleted.');
+              router.replace('/login');
+            } catch (error: any) {
+              if (error.code === 'auth/requires-recent-login') {
+                Alert.alert('Re-authentication Required', 'Please log out and log back in, then try deleting your account again.');
+              } else {
+                Alert.alert('Error', error.message || 'Failed to delete account.');
+              }
+            }
+          }
+        }
+      ]
+    );
+  };
   const router = useRouter();
   const { syncExerciseUpdates, syncExerciseDeletes } = useWorkout();
   const [user, setUser] = useState<User | null>(null);
@@ -1051,6 +1084,14 @@ export default function SettingsScreen() {
 
           <TouchableOpacity style={[GlobalStyles.startButton, { marginTop: 12 }]} onPress={handleSignOut}>
             <Text style={GlobalStyles.buttonText}>Sign Out</Text>
+          </TouchableOpacity>
+
+          {/* Delete Account Button */}
+          <TouchableOpacity
+            style={[GlobalStyles.startButton, { backgroundColor: COLORS.error, marginTop: 16 }]}
+            onPress={handleDeleteAccount}
+          >
+            <Text style={GlobalStyles.buttonText}>Delete Account</Text>
           </TouchableOpacity>
 
           {/* ───────── Add Exercise Modal ───────── */}
